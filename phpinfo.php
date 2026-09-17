@@ -1,0 +1,4 @@
+<?php
+include_once("include/config.php");
+echo "Timezone: " . date_default_timezone_get() . "<br>";
+echo "Current Time: " . date('Y-m-d H:i:s') . "<br>";

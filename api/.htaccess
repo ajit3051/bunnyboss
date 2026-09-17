@@ -1,0 +1,23 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /bbin/api/
+
+    # Allow direct file and directory access
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # Route /api/auth, /api/user, /api/products, /api/cart, /api/orders without .php
+    RewriteRule ^auth$ auth.php [QSA,L]
+    RewriteRule ^user$ user.php [QSA,L]
+    RewriteRule ^products$ products.php [QSA,L]
+    RewriteRule ^cart$ cart.php [QSA,L]
+    RewriteRule ^orders$ orders.php [QSA,L]
+    RewriteRule ^shadowfax_webhook$ shadowfax_webhook.php [QSA,L]
+    RewriteRule ^shadowfax-webhook$ shadowfax_webhook.php [QSA,L]
+    RewriteRule ^razorpay_webhook$ razorpay_webhook.php [QSA,L]
+    RewriteRule ^razorpay-webhook$ razorpay_webhook.php [QSA,L]
+
+    # Route any other path to index.php
+    RewriteRule ^(.*)$ index.php?endpoint=$1 [QSA,L]
+</IfModule>

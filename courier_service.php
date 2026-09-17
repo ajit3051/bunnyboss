@@ -1,0 +1,699 @@
+<?php
+
+/**
+ * Unified Courier Integration Service (Delhivery & Shadowfax)
+ * Configurable via include/config.php
+ */
+
+/**
+ * Get active configured courier provider
+ */
+function getActiveCourier()
+{
+    $active = strtolower(defined('_ACTIVE_COURIER_') ? _ACTIVE_COURIER_ : 'delhivery');
+    if (!in_array($active, ['delhivery', 'shadowfax', 'auto'], true)) {
+        $active = 'delhivery';
+    }
+    return $active;
+}
+
+/**
+ * Check pincode serviceability with Shadowfax API
+ * 
+ * @param string|int $delivery_pincode Customer delivery pincode
+ * @param string|int|null $pickup_pincode Optional pickup location pincode
+ * @return array ['success' => bool, 'serviceable' => bool, 'message' => string]
+ */
+function checkShadowfaxServiceability($delivery_pincode, $pickup_pincode = null)
+{
+    $delivery_pincode = preg_replace('/\D/', '', (string)$delivery_pincode);
+    if (strlen($delivery_pincode) < 6) {
+        return [
+            'success'     => false,
+            'serviceable' => false,
+            'message'     => 'Invalid 6-digit pincode format.'
+        ];
+    }
+
+    if (empty($pickup_pincode)) {
+        $pickup_pincode = defined('SHADOWFAX_PICKUP_PINCODE') ? SHADOWFAX_PICKUP_PINCODE : '110059';
+    }
+    $pickup_pincode = preg_replace('/\D/', '', (string)$pickup_pincode);
+
+    $token = defined('SHADOWFAX_API_TOKEN') ? SHADOWFAX_API_TOKEN : 'f1715d10fef84d24fa366892dbc29818ffdc4aca';
+    $url   = "https://dale.shadowfax.in/api/v1/serviceability/?pickup_pincode={$pickup_pincode}&delivery_pincode={$delivery_pincode}";
+
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HTTPHEADER     => [
+            "Authorization: Token " . $token,
+            "Accept: application/json"
+        ],
+        CURLOPT_TIMEOUT        => 10
+    ]);
+
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $err      = curl_error($ch);
+    curl_close($ch);
+
+    if ($err || $httpCode !== 200 || empty($response)) {
+        // Fallback: If API timeout occurs, do not block
+        return [
+            'success'     => false,
+            'serviceable' => true,
+            'message'     => 'Serviceability check timeout.'
+        ];
+    }
+
+    $decoded = json_decode($response, true);
+    $is_serviceable = !empty($decoded['Serviceability']) || (!empty($decoded['data']['delivery_serviceability']));
+
+    return [
+        'success'     => true,
+        'serviceable' => $is_serviceable,
+        'message'     => $is_serviceable 
+            ? "Pincode {$delivery_pincode} is serviceable." 
+            : "Sorry, delivery is not available for pincode {$delivery_pincode}."
+    ];
+}
+
+/**
+ * Check if a delivery pincode is serviceable by active courier provider
+ * 
+ * @param string|int $delivery_pincode Customer delivery pincode
+ * @param string|null $courier_name Active courier choice ('shadowfax', 'delhivery', or null)
+ * @return array ['success' => bool, 'serviceable' => bool, 'message' => string]
+ */
+function checkCourierServiceability($delivery_pincode, $courier_name = null)
+{
+    if (empty($courier_name)) {
+        $courier_name = getActiveCourier();
+    } else {
+        $courier_name = strtolower($courier_name);
+    }
+
+    if ($courier_name === 'shadowfax' || $courier_name === 'auto') {
+        return checkShadowfaxServiceability($delivery_pincode);
+    }
+
+    return [
+        'success'     => true,
+        'serviceable' => true,
+        'message'     => 'Serviceable.'
+    ];
+}
+
+/**
+ * Create shipment using active or specified courier service
+ *
+ * @param array $order Order details array
+ * @param string|null $courier_name Optional explicit courier choice ('delhivery' or 'shadowfax')
+ * @return array Result containing success status, courier_name, waybill, and raw response
+ */
+function createCourierShipment($order, $courier_name = null)
+{
+    if (empty($courier_name)) {
+        $courier_name = getActiveCourier();
+    } else {
+        $courier_name = strtolower($courier_name);
+    }
+
+    if ($courier_name === 'shadowfax') {
+        $sf_res = createShadowfaxShipment($order);
+        if (!$sf_res['success'] && defined('DELHIVERY_ENABLED') && DELHIVERY_ENABLED) {
+            error_log("Shadowfax creation failed for order " . ($order['order_id'] ?? '') . " (" . ($sf_res['error'] ?? 'Unserviceable pincode') . "). Falling back to Delhivery...");
+            $delhivery_res = createDelhiveryShipment($order);
+            if ($delhivery_res['success']) {
+                return $delhivery_res;
+            }
+        }
+        return $sf_res;
+    } elseif ($courier_name === 'auto') {
+        if (defined('SHADOWFAX_ENABLED') && SHADOWFAX_ENABLED) {
+            $sf_res = createShadowfaxShipment($order);
+            if ($sf_res['success']) {
+                return $sf_res;
+            }
+            error_log("Shadowfax auto-creation failed, falling back to Delhivery: " . json_encode($sf_res));
+        }
+        return createDelhiveryShipment($order);
+    } else {
+        return createDelhiveryShipment($order);
+    }
+}
+
+/**
+/**
+ * Execute direct Shadowfax v3 API cURL request
+ * 
+ * @param array $payload Shadowfax API v3 Payload Array
+ * @param string|null $token Optional API token override
+ * @param string|null $url Optional API endpoint URL override
+ * @return array Standardized response array with success status, http_code, waybill, data, and raw output
+ */
+function executeShadowfaxCurl($payload, $token = null, $url = null)
+{
+    $url   = !empty($url) ? $url : (defined('SHADOWFAX_CREATE_URL') ? SHADOWFAX_CREATE_URL : "https://dale.shadowfax.in/api/v3/clients/orders/");
+    $token = !empty($token) ? $token : (defined('SHADOWFAX_API_TOKEN') ? SHADOWFAX_API_TOKEN : "f1715d10fef84d24fa366892dbc29818ffdc4aca");
+
+    $jsonPayload = json_encode($payload, JSON_UNESCAPED_SLASHES);
+
+    $ch = curl_init($url);
+
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_CUSTOMREQUEST  => "POST",
+        CURLOPT_POSTFIELDS     => $jsonPayload,
+        CURLOPT_HTTPHEADER     => [
+            "Content-Type: application/json",
+            "Authorization: Token " . $token,
+        ],
+        CURLOPT_SSL_VERIFYPEER => true,
+        CURLOPT_TIMEOUT        => 30,
+    ]);
+
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $error    = curl_error($ch);
+
+    curl_close($ch);
+
+    if ($error) {
+        error_log("Shadowfax cURL error: " . $error);
+        return [
+            "success"      => false,
+            "courier_name" => "shadowfax",
+            "http_code"    => 500,
+            "waybill"      => null,
+            "error"        => $error,
+            "raw"          => ["error" => $error]
+        ];
+    }
+
+    $decoded = json_decode($response, true);
+
+    // Extract AWB number from v3 response formats
+    $waybill = $decoded['data']['awb_number']
+        ?? $decoded['awb_number']
+        ?? $decoded['AWB']
+        ?? $decoded['data']['awb']
+        ?? $decoded['awb']
+        ?? $decoded['tracking_number']
+        ?? null;
+
+    if (!$waybill && !empty($decoded['errors']) && is_string($decoded['errors'])) {
+        if (preg_match('/AWB\s*:\s*([A-Za-z0-9]+)/i', $decoded['errors'], $matches)) {
+            $waybill = $matches[1];
+        }
+    }
+
+    $msg = $decoded['message'] ?? '';
+    $has_failure = (strcasecmp($msg, 'Failure') === 0) || (!empty($decoded['errors']) && empty($waybill));
+
+    $is_success = !empty($waybill) || (($httpCode >= 200 && $httpCode < 300) && !$has_failure);
+
+    return [
+        "success"      => $is_success,
+        "courier_name" => "shadowfax",
+        "http_code"    => $httpCode,
+        "waybill"      => !empty($waybill) ? (string)$waybill : null,
+        "error"        => $decoded['errors'] ?? ($has_failure ? ($decoded['message'] ?? 'API call failed') : null),
+        "data"         => $decoded,
+        "raw"          => $decoded ?? ["http_code" => $httpCode, "response" => $response]
+    ];
+}
+
+/**
+ * Shadowfax Shipment Creation (v3 Marketplace/Warehouse Model API)
+ * Endpoint: POST https://dale.shadowfax.in/api/v3/clients/orders/
+ *
+ * @param array $order Order array or full pre-built Shadowfax payload
+ * @return array Response payload from executeShadowfaxCurl
+ */
+function createShadowfaxShipment($order)
+{
+    // If a full pre-built payload array is passed directly
+    if (isset($order['order_details']) && (isset($order['customer_details']) || isset($order['pickup_details']))) {
+        return executeShadowfaxCurl($order);
+    }
+
+    // 1. Payment mode & amounts
+    $raw_pay_mode = strtoupper(trim($order['payment_mode'] ?? ''));
+    $pay_mode    = ($raw_pay_mode === 'COD') ? 'COD' : 'Prepaid';
+    $grand_total = (float)($order['grand_total'] ?? 0);
+    $subtotal    = (float)($order['subtotal'] ?? $grand_total);
+    $cod_amount  = ($pay_mode === 'COD') ? (float)($order['cod_amount'] ?? $grand_total) : 0.0;
+    $weight      = (float)($order['actual_weight'] ?? $order['weight'] ?? 100.0); // Weight in grams
+
+    $order_type  = !empty($order['order_type']) ? $order['order_type'] : (defined('SHADOWFAX_ORDER_TYPE') ? SHADOWFAX_ORDER_TYPE : 'marketplace');
+
+    // 2. Order details object
+    $order_details = [
+        "client_order_id"   => (string) ($order['client_order_id'] ?? $order['order_id'] ?? '0123'),
+        "actual_weight"     => $weight,
+        "volumetric_weight" => (float) ($order['volumetric_weight'] ?? $weight),
+        "product_value"     => $subtotal > 0 ? $subtotal : ($grand_total > 0 ? $grand_total : 100.0),
+        "payment_mode"      => $pay_mode,
+        "cod_amount"        => (string) $cod_amount,
+        "total_amount"      => $grand_total > 0 ? $grand_total : 100.0,
+        "order_service"     => !empty($order['order_service']) ? $order['order_service'] : "regular"
+    ];
+
+    if (!empty($order['awb_number'])) {
+        $order_details['awb_number'] = (string) $order['awb_number'];
+    }
+    if (!empty($order['gstin_number'])) {
+        $order_details['gstin_number'] = (string) $order['gstin_number'];
+    }
+    if (!empty($order['eway_bill'])) {
+        $order_details['eway_bill'] = (string) $order['eway_bill'];
+    }
+    if (!empty($order['promised_delivery_date'])) {
+        $order_details['promised_delivery_date'] = (string) $order['promised_delivery_date'];
+    }
+
+    // 3. Customer details object
+    $cust_phone = preg_replace('/\D/', '', (string)($order['phone'] ?? $order['contact'] ?? '9999999999'));
+    if (strlen($cust_phone) < 10) {
+        $cust_phone = str_pad($cust_phone, 10, '0', STR_PAD_LEFT);
+    }
+    if (strlen($cust_phone) > 13) {
+        $cust_phone = substr($cust_phone, -10);
+    }
+
+    $cust_pincode = (int) preg_replace('/\D/', '', (string)($order['pincode'] ?? $order['postcode'] ?? 110059));
+
+    $customer_details = [
+        "name"           => !empty($order['customer_name']) ? (string)$order['customer_name'] : (string)($order['name'] ?? 'Customer'),
+        "contact"        => $cust_phone,
+        "address_line_1" => !empty($order['address']) ? (string)$order['address'] : (!empty($order['address_line_1']) ? (string)$order['address_line_1'] : 'Address'),
+        "city"           => !empty($order['city']) ? (string)$order['city'] : 'New Delhi',
+        "state"          => !empty($order['state']) ? (string)$order['state'] : 'Delhi',
+        "pincode"        => $cust_pincode
+    ];
+
+    if (!empty($order['address_line_2'])) {
+        $customer_details['address_line_2'] = (string)$order['address_line_2'];
+    }
+    if (!empty($order['alternate_contact'])) {
+        $customer_details['alternate_contact'] = preg_replace('/\D/', '', (string)$order['alternate_contact']);
+    }
+    if (!empty($order['latitude'])) {
+        $customer_details['latitude'] = (string)$order['latitude'];
+    }
+    if (!empty($order['longitude'])) {
+        $customer_details['longitude'] = (string)$order['longitude'];
+    }
+
+    // 4. Pickup details object
+    $pickup_pincode = (int) preg_replace('/\D/', '', (string)(defined('SHADOWFAX_PICKUP_PINCODE') ? SHADOWFAX_PICKUP_PINCODE : 110059));
+    $pickup_contact = preg_replace('/\D/', '', (string)(defined('SHADOWFAX_PICKUP_CONTACT') ? SHADOWFAX_PICKUP_CONTACT : '7838384314'));
+    $store_code     = defined('SHADOWFAX_PICKUP_STORE_CODE') ? SHADOWFAX_PICKUP_STORE_CODE : (defined('SHADOWFAX_STORE_CODE') ? SHADOWFAX_STORE_CODE : 'SHOES_01');
+
+    $pickup_details = [
+        "name"           => defined('SHADOWFAX_PICKUP_NAME') ? SHADOWFAX_PICKUP_NAME : 'BunnyBoss Warehouse',
+        "contact"        => $pickup_contact,
+        "address_line_1" => defined('SHADOWFAX_PICKUP_ADDRESS') ? SHADOWFAX_PICKUP_ADDRESS : 'A1-40, Chanakya Place Part-1, 25 Foota Road (C-1 Janak Puri), Opp. Mata Chanan Devi Hospital',
+        "city"           => defined('SHADOWFAX_PICKUP_CITY') ? SHADOWFAX_PICKUP_CITY : 'New Delhi',
+        "state"          => defined('SHADOWFAX_PICKUP_STATE') ? SHADOWFAX_PICKUP_STATE : 'Delhi',
+        "pincode"        => $pickup_pincode,
+        "unique_code"    => (string) $store_code
+    ];
+
+    if (defined('SHADOWFAX_PICKUP_ADDRESS_LINE_2')) {
+        $pickup_details['address_line_2'] = SHADOWFAX_PICKUP_ADDRESS_LINE_2;
+    }
+    if (defined('SHADOWFAX_PICKUP_LATITUDE')) {
+        $pickup_details['latitude'] = (string) SHADOWFAX_PICKUP_LATITUDE;
+    }
+    if (defined('SHADOWFAX_PICKUP_LONGITUDE')) {
+        $pickup_details['longitude'] = (string) SHADOWFAX_PICKUP_LONGITUDE;
+    }
+
+    // 5. Return to Seller (RTS / RTO) details object
+    $rto_pincode = (int) preg_replace('/\D/', '', (string)(defined('SHADOWFAX_RTO_PINCODE') ? SHADOWFAX_RTO_PINCODE : $pickup_pincode));
+    $rto_contact = preg_replace('/\D/', '', (string)(defined('SHADOWFAX_RTO_CONTACT') ? SHADOWFAX_RTO_CONTACT : $pickup_contact));
+
+    $rts_details = [
+        "name"           => defined('SHADOWFAX_RTO_NAME') ? SHADOWFAX_RTO_NAME : $pickup_details['name'],
+        "contact"        => $rto_contact,
+        "address_line_1" => defined('SHADOWFAX_RTO_ADDRESS') ? SHADOWFAX_RTO_ADDRESS : $pickup_details['address_line_1'],
+        "city"           => defined('SHADOWFAX_RTO_CITY') ? SHADOWFAX_RTO_CITY : $pickup_details['city'],
+        "state"          => defined('SHADOWFAX_RTO_STATE') ? SHADOWFAX_RTO_STATE : $pickup_details['state'],
+        "pincode"        => $rto_pincode,
+        "unique_code"    => (string) $store_code
+    ];
+
+    if (defined('SHADOWFAX_RTO_EMAIL')) {
+        $rts_details['email'] = SHADOWFAX_RTO_EMAIL;
+    }
+
+    // 6. Product details array
+    $product_details = [];
+    if (!empty($order['items']) && is_array($order['items'])) {
+        foreach ($order['items'] as $item) {
+            $sku_id = (string)($item['sku_id'] ?? $item['client_sku_id'] ?? $item['sku'] ?? $item['product_id'] ?? 'MAC789');
+            $p_item = [
+                "sku_id"        => $sku_id,
+                "client_sku_id" => $sku_id,
+                "sku_name"      => (string)($item['sku_name'] ?? $item['product_title'] ?? $item['title'] ?? 'macBook Air'),
+                "price"         => (float)($item['price'] ?? $item['unit_price'] ?? $grand_total)
+            ];
+            if (!empty($item['hsn_code'])) {
+                $p_item['hsn_code'] = (string)$item['hsn_code'];
+            }
+            if (!empty($item['invoice_no'])) {
+                $p_item['invoice_no'] = (string)$item['invoice_no'];
+            }
+            if (!empty($item['category'])) {
+                $p_item['category'] = (string)$item['category'];
+            }
+            if (!empty($item['seller_details']) && is_array($item['seller_details'])) {
+                $p_item['seller_details'] = $item['seller_details'];
+            }
+            if (!empty($item['taxes']) && is_array($item['taxes'])) {
+                $p_item['taxes'] = $item['taxes'];
+            }
+            if (!empty($item['additional_details']) && is_array($item['additional_details'])) {
+                $p_item['additional_details'] = $item['additional_details'];
+            }
+            $product_details[] = $p_item;
+        }
+    } else {
+        // Query items from database if available
+        if (!empty($order['order_id']) && function_exists('connect')) {
+            $db = connect();
+            $items_stmt = $db->select(
+                "SELECT product_id, product_title, price, qty FROM tbl_order_items WHERE order_id = ?",
+                'i',
+                (int)$order['order_id']
+            );
+            if ($items_stmt) {
+                while ($itemRow = $items_stmt->fetch_assoc()) {
+                    $sku_id = "SKU_" . $itemRow['product_id'];
+                    $product_details[] = [
+                        "sku_id"        => $sku_id,
+                        "client_sku_id" => $sku_id,
+                        "sku_name"      => $itemRow['product_title'],
+                        "price"         => (float) $itemRow['price'],
+                        "additional_details" => [
+                            "quantity" => (int) $itemRow['qty']
+                        ]
+                    ];
+                }
+                $items_stmt->close();
+            }
+        }
+    }
+
+    if (empty($product_details)) {
+        $product_details[] = [
+            "sku_id"        => "ORD_" . ($order['order_id'] ?? '0123'),
+            "client_sku_id" => "ORD_" . ($order['order_id'] ?? '0123'),
+            "sku_name"      => !empty($order['products_desc']) ? $order['products_desc'] : "General Merchandise",
+            "price"         => $grand_total > 0 ? $grand_total : 100.0
+        ];
+    }
+
+    // Assemble final v3 payload
+    $payload = [
+        "order_type"       => $order_type,
+        "order_details"    => $order_details,
+        "customer_details" => $customer_details,
+        "pickup_details"   => $pickup_details,
+        "rts_details"      => $rts_details,
+        "rto_details"      => $rts_details, // Alias for backward compatibility
+        "product_details"  => $product_details
+    ];
+
+    return executeShadowfaxCurl($payload);
+}
+
+/**
+ * Track shipment across active or specified courier service
+ *
+ * @param string $waybill AWB or tracking number
+ * @param string|null $courier_name Courier provider name ('delhivery' or 'shadowfax')
+ * @return array Standardized tracking payload
+ */
+function trackCourierShipment($waybill, $courier_name = null)
+{
+    $waybill = trim($waybill);
+    if (empty($waybill)) {
+        return ['success' => false, 'message' => 'AWB / Tracking number is required.'];
+    }
+
+    // Auto-detect courier if not provided
+    if (empty($courier_name)) {
+        $db = connect();
+        $stmt = $db->select("SELECT courier_name FROM tbl_orders WHERE courier_awb = ? OR delhivery_awb = ? LIMIT 1", 'ss', $waybill, $waybill);
+        if ($stmt && $row = $stmt->fetch_assoc()) {
+            $courier_name = strtolower($row['courier_name'] ?? '');
+        }
+    }
+
+    if (empty($courier_name)) {
+        $courier_name = getActiveCourier();
+    }
+
+    if (strtolower($courier_name) === 'shadowfax') {
+        return trackShadowfaxShipment($waybill);
+    } else {
+        return trackDelhiveryShipment($waybill);
+    }
+}
+
+/**
+ * Track Shadowfax Shipment
+ */
+function trackShadowfaxShipment($waybill)
+{
+    $api_token   = defined('SHADOWFAX_API_TOKEN') ? SHADOWFAX_API_TOKEN : '';
+    $track_url   = defined('SHADOWFAX_TRACK_URL') ? SHADOWFAX_TRACK_URL : 'https://api.shadowfax.in/api/v1/tracking/';
+    $url         = rtrim($track_url, '/') . '/' . urlencode($waybill);
+
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_USERAGENT      => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        CURLOPT_HTTPHEADER     => [
+            "Authorization: Token " . $api_token,
+            "Accept: application/json"
+        ],
+        CURLOPT_TIMEOUT        => 15
+    ]);
+
+    $response  = curl_exec($ch);
+    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $err       = curl_error($ch);
+    curl_close($ch);
+
+    if ($err) {
+        return ['success' => false, 'message' => 'Shadowfax cURL error: ' . $err];
+    }
+
+    $data = json_decode($response, true);
+
+    if ($http_code != 200 || empty($data)) {
+        return ['success' => false, 'message' => 'Shadowfax API error (HTTP ' . $http_code . ') or AWB not found.'];
+    }
+
+    // Standardize Shadowfax tracking response
+    $status_str  = $data['status'] ?? $data['current_status'] ?? 'In Transit';
+    $status_type = 'IT';
+    if (stripos($status_str, 'delivered') !== false) {
+        $status_type = 'DL';
+    } elseif (stripos($status_str, 'pending') !== false || stripos($status_str, 'created') !== false) {
+        $status_type = 'UD';
+    }
+
+    $scans = [];
+    if (!empty($data['tracking_details']) && is_array($data['tracking_details'])) {
+        foreach ($data['tracking_details'] as $track) {
+            $scans[] = [
+                'ScanDetail' => [
+                    'Scan'            => $track['status'] ?? $track['location_status'] ?? '',
+                    'ScannedLocation' => $track['location'] ?? $track['hub_name'] ?? '',
+                    'ScanDateTime'     => $track['timestamp'] ?? $track['date'] ?? ''
+                ]
+            ];
+        }
+    }
+
+    return [
+        'success'        => true,
+        'courier_name'   => 'Shadowfax',
+        'awb'            => $data['awb_number'] ?? $waybill,
+        'status'         => $status_str,
+        'status_type'    => $status_type,
+        'status_date'    => $data['updated_at'] ?? date('Y-m-d H:i:s'),
+        'origin'         => $data['origin'] ?? 'Hub',
+        'destination'    => $data['destination'] ?? 'Customer',
+        'expected_date'  => $data['expected_delivery_date'] ?? '',
+        'scans'          => $scans
+    ];
+}
+
+/**
+ * Track Delhivery Shipment
+ */
+function trackDelhiveryShipment($waybill)
+{
+    $api_token = defined('DELHIVERY_API_TOKEN') ? DELHIVERY_API_TOKEN : '';
+    $track_url = defined('DELHIVERY_TRACK_URL') ? DELHIVERY_TRACK_URL : 'https://track.delhivery.com/api/v1/packages/json/';
+    $url = $track_url . '?waybill=' . urlencode($waybill) . '&token=' . $api_token;
+
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Authorization: Token ' . $api_token,
+        'Content-Type: application/json'
+    ]);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 15);
+
+    $response = curl_exec($ch);
+    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $err = curl_error($ch);
+    curl_close($ch);
+
+    if ($err) {
+        return ['success' => false, 'message' => 'Delhivery cURL error: ' . $err];
+    }
+
+    if ($http_code != 200) {
+        return ['success' => false, 'message' => 'Delhivery API returned HTTP ' . $http_code];
+    }
+
+    $data = json_decode($response, true);
+
+    if (!isset($data['ShipmentData'][0]['Shipment'])) {
+        return ['success' => false, 'message' => 'No tracking data found for this AWB'];
+    }
+
+    $shipment = $data['ShipmentData'][0]['Shipment'];
+
+    return [
+        'success'        => true,
+        'courier_name'   => 'Delhivery',
+        'awb'            => $shipment['AWB'] ?? $waybill,
+        'status'         => $shipment['Status']['Status'] ?? 'Unknown',
+        'status_type'    => $shipment['Status']['StatusType'] ?? '',
+        'status_date'    => $shipment['Status']['StatusDateTime'] ?? '',
+        'origin'         => $shipment['Origin'] ?? '',
+        'destination'    => $shipment['Destination'] ?? '',
+        'expected_date'  => $shipment['ExpectedDeliveryDate'] ?? '',
+        'scans'          => $shipment['Scans'] ?? []
+    ];
+}
+
+/**
+ * Dispatch an order by order_id from database using specified or active courier
+ *
+ * @param int $order_id Order ID
+ * @param string|null $courier_name 'shadowfax', 'delhivery', or null
+ * @return array Result array with success, courier_name, waybill, and message
+ */
+function dispatchOrderById($order_id, $courier_name = null)
+{
+    $order_id = (int)$order_id;
+    if ($order_id <= 0) {
+        return ['success' => false, 'message' => 'Invalid Order ID.'];
+    }
+
+    $db = connect();
+    $stmt = $db->select(
+        "SELECT order_id, first_name, last_name, street_address, city, postcode, phone,
+                payment_method, subtotal, gst_amount, grand_total, courier_name, courier_awb, delhivery_awb
+         FROM tbl_orders
+         WHERE order_id = ? LIMIT 1",
+        'i',
+        $order_id
+    );
+
+    if (!$stmt || !($orderData = $stmt->fetch_assoc())) {
+        return ['success' => false, 'message' => "Order #{$order_id} not found."];
+    }
+    $stmt->close();
+
+    $existing_awb = !empty($orderData['courier_awb']) ? $orderData['courier_awb'] : (!empty($orderData['delhivery_awb']) ? $orderData['delhivery_awb'] : null);
+
+    $payment_method = strtolower($orderData['payment_method'] ?? 'cod');
+    $pay_mode = ($payment_method === 'cod') ? 'COD' : 'Prepaid';
+
+    $items_stmt = $db->select(
+        "SELECT COUNT(*) AS item_count FROM tbl_order_items WHERE order_id = ?",
+        'i',
+        $order_id
+    );
+    $itemsRow   = $items_stmt ? $items_stmt->fetch_assoc() : [];
+    $item_count = (int) ($itemsRow['item_count'] ?? 1);
+    if ($items_stmt) $items_stmt->close();
+
+    $shipmentOrder = [
+        'order_id'      => $orderData['order_id'],
+        'customer_name' => trim($orderData['first_name'] . ' ' . $orderData['last_name']),
+        'phone'         => $orderData['phone'],
+        'address'       => $orderData['street_address'],
+        'city'          => $orderData['city'],
+        'state'         => 'Delhi',
+        'pincode'       => $orderData['postcode'],
+        'payment_mode'  => $pay_mode,
+        'grand_total'   => (float)$orderData['grand_total'],
+        'subtotal'      => (float)$orderData['subtotal'],
+        'cod_amount'    => ($pay_mode === 'COD') ? (float)$orderData['grand_total'] : 0.0,
+        'item_count'    => $item_count,
+        'products_desc' => 'General Merchandise',
+    ];
+
+    if (!empty($existing_awb)) {
+        $shipmentOrder['awb_number'] = $existing_awb;
+    }
+
+    $result = createCourierShipment($shipmentOrder, $courier_name);
+
+    if ($result['success'] && !empty($result['waybill'])) {
+        $courier_used      = strtolower($result['courier_name'] ?? 'shadowfax');
+        $waybill           = $result['waybill'];
+        $delhivery_awb_val = ($courier_used === 'delhivery') ? $waybill : null;
+
+        $db->update(
+            "UPDATE tbl_orders SET dispatch_status = 'dispatched', courier_name = ?, courier_awb = ?, delhivery_awb = ?, dispatch_error = NULL, is_pincode_serviceable = 1 WHERE order_id = ?",
+            'sssi',
+            $courier_used,
+            $waybill,
+            $delhivery_awb_val,
+            $order_id
+        );
+        return [
+            'success'      => true,
+            'courier_name' => $courier_used,
+            'waybill'      => $waybill,
+            'message'      => "Shipment created successfully via " . ucfirst($courier_used) . ". AWB: {$waybill}",
+            'raw'          => $result['raw'] ?? []
+        ];
+    }
+
+    $error_msg = $result['error'] ?? $result['raw']['errors'] ?? $result['raw']['message'] ?? 'Failed to create shipment with courier.';
+    if (is_array($error_msg)) {
+        $error_msg = json_encode($error_msg);
+    }
+
+    $is_serviceable_flag = (stripos($error_msg, 'not serviceble') !== false || stripos($error_msg, 'not serviceable') !== false || stripos($error_msg, 'invalid delivery pincode') !== false) ? 0 : 1;
+
+    $db->update(
+        "UPDATE tbl_orders SET dispatch_status = 'failed', dispatch_error = ?, is_pincode_serviceable = ? WHERE order_id = ?",
+        'sii',
+        $error_msg,
+        $is_serviceable_flag,
+        $order_id
+    );
+
+    return [
+        'success'      => false,
+        'courier_name' => $courier_name ?? getActiveCourier(),
+        'message'      => "Courier creation error: {$error_msg}",
+        'raw'          => $result['raw'] ?? []
+    ];
+}
