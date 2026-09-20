@@ -100,21 +100,30 @@ if ($action === 'process_order') {
         $db->update("UPDATE tbl_users SET name = ? WHERE id = ? AND (name IS NULL OR name = '')", 'si', $full_name, $user_id_val);
     }
 
+    // Ensure schema has transaction_id & related courier columns
+    if (function_exists('ensure_order_items_schema')) {
+        ensure_order_items_schema($db);
+    }
+
     // Insert order items & update variant stock
     foreach ($_SESSION['checkout_products'] as $item) {
-        $product_id    = isset($item['product_id'])    ? (int)$item['product_id']    : null;
-        $product_title = isset($item['product_title']) ? $item['product_title']     : 'Product';
-        $qty           = isset($item['quantity'])      ? (int)$item['quantity']       : 1;
-        $size          = isset($item['size'])          ? (int)$item['size']           : null;
-        $price         = isset($item['unit_price'])    ? (float)$item['unit_price']     : 0.00;
-        $row_total     = isset($item['row_total'])     ? (float)$item['row_total']      : 0.00;
-        $item_gst_amt  = round(($row_total * $gst_percent_val) / 100, 2);
+        $product_id     = isset($item['product_id'])    ? (int)$item['product_id']    : null;
+        $product_title  = isset($item['product_title']) ? $item['product_title']     : 'Product';
+        $qty            = isset($item['quantity'])      ? (int)$item['quantity']       : 1;
+        $size           = isset($item['size'])          ? (int)$item['size']           : null;
+        $price          = isset($item['unit_price'])    ? (float)$item['unit_price']     : 0.00;
+        $row_total      = isset($item['row_total'])     ? (float)$item['row_total']      : 0.00;
+        $item_gst_amt   = round(($row_total * $gst_percent_val) / 100, 2);
+        $transaction_id = function_exists('generate_item_transaction_id') ? generate_item_transaction_id($db) : ('bb' . str_pad(mt_rand(1, 99999999), 8, '0', STR_PAD_LEFT));
+        $is_test_item   = function_exists('is_testing_order_item') ? is_testing_order_item($item) : false;
+        $disp_status    = $is_test_item ? 'skipped_test' : 'pending';
+        $disp_err       = $is_test_item ? 'Testing item excluded from courier push' : null;
 
         $db->insert(
-            "INSERT INTO tbl_order_items (order_id, product_id, product_title, qty, size, price, gst_percent, gst_amount, row_total, shipping) 
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            'iisiiddddd',
-            $new_order_id, $product_id, $product_title, $qty, $size, $price, $gst_percent_val, $item_gst_amt, $row_total, $shipping
+            "INSERT INTO tbl_order_items (order_id, product_id, product_title, qty, size, price, gst_percent, gst_amount, row_total, shipping, transaction_id, dispatch_status, dispatch_error) 
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            'iisiidddddsss',
+            $new_order_id, $product_id, $product_title, $qty, $size, $price, $gst_percent_val, $item_gst_amt, $row_total, $shipping, $transaction_id, $disp_status, $disp_err
         );
 
     }
@@ -230,18 +239,20 @@ if ($action === 'verify_payment') {
         $order_status   = 'success';
         $payment_status = 'partial_paid';
         $collect_amt    = $cod_includes_gst ? (float)$orderData['subtotal'] : ((float)$orderData['subtotal'] + (float)($orderData['gst_amount'] ?? 0));
+        $paid_amount    = max(0.0, round((float)$orderData['grand_total'] - $collect_amt, 2));
         $courier_mode   = 'COD';
     } else {
         $order_status   = 'success';
         $payment_status = 'paid';
         $collect_amt    = (float)$orderData['grand_total'];
+        $paid_amount    = (float)$orderData['grand_total'];
         $courier_mode   = 'Prepaid';
     }
 
     $db->update(
-        "UPDATE tbl_orders SET payment_status = ?, order_status = ?, razorpay_payment_id = ?, razorpay_order_id = ? WHERE order_id = ?",
-        'ssssi',
-        $payment_status, $order_status, $rzp_id, $rzp_order, $order_id
+        "UPDATE tbl_orders SET payment_status = ?, order_status = ?, paid_amount = ?, razorpay_payment_id = ?, razorpay_order_id = ? WHERE order_id = ?",
+        'ssdssi',
+        $payment_status, $order_status, $paid_amount, $rzp_id, $rzp_order, $order_id
     );
 
     // Deduct product stock now that payment is confirmed

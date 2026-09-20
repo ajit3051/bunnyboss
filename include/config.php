@@ -138,7 +138,7 @@ if (!defined('DELHIVERY_ENABLED'))
 
 // Shadowfax Courier Integration Config
 if (!defined('SHADOWFAX_API_TOKEN'))
-    define('SHADOWFAX_API_TOKEN', 'f1715d10fef84d24fa366892dbc29818ffdc4aca');
+    define('SHADOWFAX_API_TOKEN', 'f1715d10fef84d24fa366892dbc29818ffdc4aca_test');
 if (!defined('SHADOWFAX_CREATE_URL'))
     define('SHADOWFAX_CREATE_URL', 'https://dale.shadowfax.in/api/v3/clients/orders/');
 if (!defined('SHADOWFAX_TRACK_URL'))
@@ -175,6 +175,14 @@ if (!defined('SHADOWFAX_RTO_PINCODE'))
     define('SHADOWFAX_RTO_PINCODE', '110059');
 if (!defined('SHADOWFAX_ENABLED'))
     define('SHADOWFAX_ENABLED', true);
+
+// Excluded test product IDs and SKUs (never pushed to Shadowfax)
+if (!defined('SHADOWFAX_TEST_PRODUCT_IDS')) {
+    define('SHADOWFAX_TEST_PRODUCT_IDS', []);
+}
+if (!defined('SHADOWFAX_TEST_SKUS')) {
+    define('SHADOWFAX_TEST_SKUS', []);
+}
 
 ############ Included Libraries & Services ############################
 require_once(_CLASS_PATH . "pager_v2.cls.php");

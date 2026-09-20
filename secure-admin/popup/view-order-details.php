@@ -97,12 +97,14 @@ $items_stmt = $db->select("SELECT OI.*, (SELECT image_path FROM tbl_item_images 
 					<thead>
 						<tr class="info">
 							<th style="width: 60px;">Image</th>
+							<th>Txn ID</th>
 							<th>Product Title</th>
 							<th style="width: 70px;">Size</th>
 							<th style="width: 60px;">Qty</th>
 							<th>Unit Price</th>
 							<th>Shipping</th>
 							<th>Total</th>
+							<th>Courier / AWB</th>
 						</tr>
 					</thead>
 					<tbody>
@@ -123,18 +125,30 @@ $items_stmt = $db->select("SELECT OI.*, (SELECT image_path FROM tbl_item_images 
 								<td style="text-align: center; vertical-align: middle;">
 									<img src="<?= $imgSrc ?>" alt="Item Image" class="img-thumbnail img-popup-trigger" style="max-height: 45px; max-width: 45px; object-fit: contain; cursor: pointer;" title="Click to view full image" onclick="event.stopPropagation(); showImageModal(this.src, '<?= htmlspecialchars(addslashes($item['product_title']), ENT_QUOTES) ?>', event);">
 								</td>
+								<td style="vertical-align: middle;">
+									<span class="label label-primary" style="font-family: monospace; font-size: 11px; letter-spacing: 0.5px;"><?= htmlspecialchars($item['transaction_id'] ?? '-') ?></span>
+								</td>
 								<td style="vertical-align: middle;"><?= htmlspecialchars($item['product_title']) ?></td>
 								<td style="vertical-align: middle;"><?= htmlspecialchars($item['size']) ?></td>
 								<td style="vertical-align: middle;"><?= htmlspecialchars($item['qty']) ?></td>
 								<td style="vertical-align: middle;">₹<?= htmlspecialchars($item['price']) ?></td>
 								<td style="vertical-align: middle;">₹<?= htmlspecialchars($item['shipping']) ?></td>
 								<td style="vertical-align: middle;"><strong>₹<?= htmlspecialchars($item['row_total']) ?></strong></td>
+								<td style="vertical-align: middle;">
+									<?php if (!empty($item['courier_awb'])): ?>
+										<span class="label label-info" style="font-size: 11px;"><?= htmlspecialchars($item['courier_awb']) ?></span>
+									<?php elseif (!empty($item['dispatch_status']) && $item['dispatch_status'] === 'skipped_test'): ?>
+										<span class="label label-default" style="font-size: 11px;">Test (Skipped)</span>
+									<?php else: ?>
+										<span class="label label-warning" style="font-size: 11px;"><?= htmlspecialchars(strtoupper($item['dispatch_status'] ?? 'Pending')) ?></span>
+									<?php endif; ?>
+								</td>
 							</tr>
 						<?php 
 							endwhile;
 						else:
 						?>
-							<tr><td colspan="7" class="text-center">No items found for this order.</td></tr>
+							<tr><td colspan="9" class="text-center">No items found for this order.</td></tr>
 						<?php endif; ?>
 					</tbody>
 				</table>

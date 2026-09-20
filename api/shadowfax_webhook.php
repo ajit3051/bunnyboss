@@ -217,6 +217,20 @@ if ($orderRow) {
         $updated = true;
         $update_msg = "Order #{$target_order_id} AWB details updated.";
     }
+
+    // Keep tbl_order_items in sync with parent order (preserve skipped test items)
+    $disp_status_sync = !empty($new_dispatch) ? $new_dispatch : (!empty($orderRow['dispatch_status']) ? $orderRow['dispatch_status'] : 'shadowfax');
+    $db->update(
+        "UPDATE tbl_order_items 
+         SET courier_name = 'shadowfax', 
+             courier_awb = COALESCE(NULLIF(?, ''), courier_awb), 
+             dispatch_status = ? 
+         WHERE order_id = ? AND (dispatch_status IS NULL OR dispatch_status != 'skipped_test')",
+        'ssi',
+        $awb_clean,
+        $disp_status_sync,
+        $target_order_id
+    );
 }
 
 $db->close();
