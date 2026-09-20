@@ -114,7 +114,7 @@ if ($action === 'process_order') {
         $price          = isset($item['unit_price'])    ? (float)$item['unit_price']     : 0.00;
         $row_total      = isset($item['row_total'])     ? (float)$item['row_total']      : 0.00;
         $item_gst_amt   = round(($row_total * $gst_percent_val) / 100, 2);
-        $transaction_id = function_exists('generate_item_transaction_id') ? generate_item_transaction_id($db) : ('bb' . str_pad(mt_rand(1, 99999999), 8, '0', STR_PAD_LEFT));
+        $transaction_id = function_exists('generate_item_transaction_id') ? generate_item_transaction_id($db) : ('BB' . str_pad(mt_rand(1, 99999999), 8, '0', STR_PAD_LEFT));
         $is_test_item   = function_exists('is_testing_order_item') ? is_testing_order_item($item) : false;
         $disp_status    = $is_test_item ? 'skipped_test' : 'pending';
         $disp_err       = $is_test_item ? 'Testing item excluded from courier push' : null;

@@ -636,7 +636,7 @@ function dispatchOrderItemById($order_item_id, $courier_name = null)
 
     // Ensure item has a 10-digit transaction ID (bbXXXXXXXX)
     if (empty($itemData['transaction_id'])) {
-        $tx_id = function_exists('generate_item_transaction_id') ? generate_item_transaction_id($db) : ('bb' . str_pad(mt_rand(1, 99999999), 8, '0', STR_PAD_LEFT));
+        $tx_id = function_exists('generate_item_transaction_id') ? generate_item_transaction_id($db) : ('BB' . str_pad(mt_rand(1, 99999999), 8, '0', STR_PAD_LEFT));
         $db->update("UPDATE tbl_order_items SET transaction_id = ? WHERE $pk = ?", 'si', $tx_id, $order_item_id);
         $itemData['transaction_id'] = $tx_id;
     } else {
