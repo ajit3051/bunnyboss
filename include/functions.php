@@ -577,8 +577,8 @@ function restore_checkout_session()
         "SELECT CI.*, (SELECT image_path FROM tbl_item_images WHERE item_id = CI.product_id ORDER BY sort_order ASC, id ASC LIMIT 1) AS picture 
          FROM tbl_cart_items as CI 
          WHERE CI.cart_session = ? 
-         ORDER BY CI.id DESC", 
-        's', 
+         ORDER BY CI.id DESC",
+        's',
         $cart_session
     );
 
@@ -935,7 +935,7 @@ function createDelhiveryShipment($order)
         "order"         => (string) $order['order_id'],               // must be unique
         "payment_mode"  => $order['payment_mode'],                    // "COD" or "Prepaid"
         "total_amount"  => (string) $order['grand_total'],
-        "cod_amount"    => $order['payment_mode'] === 'COD' ? (string) $order['grand_total'] : "0",
+        "cod_amount"    => $order['payment_mode'] === 'COD' ? (string) ($order['cod_amount'] ?? $order['grand_total']) : "0",
         "products_desc" => $order['products_desc'] ?? "General Merchandise",
         "quantity"      => (string) $order['item_count'],
         "order_date"    => date('Y-m-d H:i:s'),
@@ -992,7 +992,8 @@ function createDelhiveryShipment($order)
  * Deduct purchased item quantities from variant stock when an order is successfully placed/paid.
  * Idempotent: checks is_stock_deducted flag to avoid deducting multiple times.
  */
-function deduct_order_stock($order_id) {
+function deduct_order_stock($order_id)
+{
     $order_id = (int)$order_id;
     if ($order_id <= 0) return false;
 
@@ -1049,4 +1050,184 @@ function deduct_order_stock($order_id) {
     // Mark order as stock deducted
     $db->update("UPDATE tbl_orders SET is_stock_deducted = 1 WHERE order_id = ?", 'i', $order_id);
     return true;
+}
+
+/**
+ * Get primary key column name for tbl_order_items (e.g. 'item_id' or 'id')
+ */
+function get_order_items_primary_key($db = null)
+{
+    if (!$db && function_exists('connect')) {
+        $db = connect();
+    }
+    if (!$db) return 'item_id';
+
+    static $pk_name = null;
+    if ($pk_name !== null) return $pk_name;
+
+    $cols_res = $db->query("SHOW COLUMNS FROM tbl_order_items");
+    if ($cols_res) {
+        while ($col = $cols_res->fetch_assoc()) {
+            if ($col['Key'] === 'PRI') {
+                $pk_name = $col['Field'];
+                return $pk_name;
+            }
+        }
+    }
+    $pk_name = 'item_id';
+    return $pk_name;
+}
+
+/**
+ * Ensure tbl_order_items has transaction_id, courier_awb, dispatch_status, and dispatch_error columns.
+ * Also automatically backfills transaction_id for any existing items.
+ */
+function ensure_order_items_schema($db = null)
+{
+    if (!$db && function_exists('connect')) {
+        $db = connect();
+    }
+    if (!$db) return;
+
+    static $is_checked = false;
+    if ($is_checked) return;
+
+    $cols = [];
+    $res = $db->query("SHOW COLUMNS FROM tbl_order_items");
+    if ($res) {
+        while ($row = $res->fetch_assoc()) {
+            $cols[] = $row['Field'];
+        }
+    }
+
+    if (!in_array('transaction_id', $cols)) {
+        $db->query("ALTER TABLE tbl_order_items ADD COLUMN transaction_id VARCHAR(20) DEFAULT NULL");
+        $db->query("ALTER TABLE tbl_order_items ADD UNIQUE INDEX idx_oi_transaction_id (transaction_id)");
+    }
+    if (!in_array('courier_name', $cols)) {
+        $db->query("ALTER TABLE tbl_order_items ADD COLUMN courier_name VARCHAR(50) DEFAULT NULL");
+    }
+    if (!in_array('courier_awb', $cols)) {
+        $db->query("ALTER TABLE tbl_order_items ADD COLUMN courier_awb VARCHAR(50) DEFAULT NULL");
+        $db->query("ALTER TABLE tbl_order_items ADD INDEX idx_oi_courier_awb (courier_awb)");
+    }
+    if (!in_array('dispatch_status', $cols)) {
+        $db->query("ALTER TABLE tbl_order_items ADD COLUMN dispatch_status VARCHAR(30) DEFAULT 'pending'");
+    }
+    if (!in_array('dispatch_error', $cols)) {
+        $db->query("ALTER TABLE tbl_order_items ADD COLUMN dispatch_error TEXT DEFAULT NULL");
+    }
+
+    $pk = get_order_items_primary_key($db);
+
+    // Backfill transaction_id for existing rows that lack one
+    if ($pk) {
+        $missing_rows = [];
+        $missing = $db->query("SELECT $pk, product_title, price, product_id FROM tbl_order_items WHERE transaction_id IS NULL OR transaction_id = ''");
+        if ($missing) {
+            while ($mRow = $missing->fetch_assoc()) {
+                $missing_rows[] = $mRow;
+            }
+            $missing->close();
+        }
+
+        foreach ($missing_rows as $mRow) {
+            $rowId = (int)$mRow[$pk];
+            $txId = generate_item_transaction_id($db);
+            $isTest = is_testing_order_item($mRow);
+            if ($isTest) {
+                $db->query("UPDATE tbl_order_items SET transaction_id = '$txId', dispatch_status = 'skipped_test', dispatch_error = 'Testing item excluded from courier push' WHERE $pk = $rowId");
+            } else {
+                $db->query("UPDATE tbl_order_items SET transaction_id = '$txId' WHERE $pk = $rowId");
+            }
+        }
+    }
+
+    $is_checked = true;
+}
+
+/**
+ * Generate a 10-digit transaction ID with 'bb' prefix (e.g. bb12345678)
+ * 2 letters ('bb') + 8 numeric digits = exactly 10 characters
+ */
+function generate_item_transaction_id($db = null)
+{
+    if (!$db && function_exists('connect')) {
+        $db = connect();
+    }
+
+    do {
+        $random_num = str_pad((string)mt_rand(1, 99999999), 8, '0', STR_PAD_LEFT);
+        $tx_id = 'BB' . $random_num;
+        $exists = false;
+        if ($db) {
+            $check = $db->query("SELECT 1 FROM tbl_order_items WHERE transaction_id = '$tx_id' LIMIT 1");
+            if ($check && $check->num_rows > 0) {
+                $exists = true;
+            }
+            if ($check && is_object($check)) {
+                $check->close();
+            }
+        }
+    } while ($exists);
+
+    return $tx_id;
+}
+
+/**
+ * Determine if an item is a testing item and should NOT be pushed to Shadowfax.
+ * Checks title, SKU, price (<= 1.00), and configured test identifiers.
+ */
+function is_testing_order_item($item_data)
+{
+    if (is_numeric($item_data)) {
+        $db = connect();
+        $pk = get_order_items_primary_key($db);
+        $res = $db->select("SELECT * FROM tbl_order_items WHERE $pk = ? LIMIT 1", 'i', (int)$item_data);
+        if ($res && ($row = $res->fetch_assoc())) {
+            $item_data = $row;
+        } else {
+            return false;
+        }
+    }
+
+    if (!is_array($item_data)) {
+        return false;
+    }
+
+    $title      = trim($item_data['product_title'] ?? $item_data['item_name'] ?? $item_data['sku_name'] ?? '');
+    $price      = (float)($item_data['price'] ?? $item_data['unit_price'] ?? $item_data['row_total'] ?? 999.0);
+    $sku        = trim($item_data['sku'] ?? $item_data['sku_no'] ?? $item_data['item_code'] ?? $item_data['sku_id'] ?? '');
+    $product_id = (int)($item_data['product_id'] ?? 0);
+
+    // 1. Keyword check in Title
+    if (preg_match('/(?:^|\b|\s|_|-)(test|testing|sample|demo|dummy)(?:$|\b|\s|_|-)/i', $title)) {
+        return true;
+    }
+
+    // 2. Keyword check in SKU
+    if (!empty($sku) && preg_match('/(?:^|\b|\s|_|-)(test|demo|sample|dummy)/i', $sku)) {
+        return true;
+    }
+
+    // 3. Price check: <= ₹1.00 is treated as a test/dummy price
+    if ($price <= 1.00) {
+        return true;
+    }
+
+    // 4. Configured test product IDs
+    if (defined('SHADOWFAX_TEST_PRODUCT_IDS') && is_array(SHADOWFAX_TEST_PRODUCT_IDS)) {
+        if (in_array($product_id, SHADOWFAX_TEST_PRODUCT_IDS, true)) {
+            return true;
+        }
+    }
+
+    // 5. Configured test SKUs
+    if (defined('SHADOWFAX_TEST_SKUS') && is_array(SHADOWFAX_TEST_SKUS)) {
+        if (!empty($sku) && in_array($sku, SHADOWFAX_TEST_SKUS, true)) {
+            return true;
+        }
+    }
+
+    return false;
 }

@@ -10,6 +10,10 @@ if (defined('_FRONTEND_PATH')) {
 $validationHelper = new validation();
 $db = connect();
 
+if (function_exists('ensure_order_items_schema')) {
+    ensure_order_items_schema($db);
+}
+
 if (isset($_POST['action']) && $_POST['action'] === 'bulk_dispatch') {
     ob_clean();
     header('Content-Type: application/json; charset=UTF-8');
@@ -17,6 +21,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'bulk_dispatch') {
     if (!empty($order_ids)) {
         $ids_str = implode(',', $order_ids);
         $db->query("UPDATE tbl_orders SET dispatch_status = 'dispatched' WHERE order_id IN ($ids_str)");
+        $db->query("UPDATE tbl_order_items SET dispatch_status = 'dispatched' WHERE order_id IN ($ids_str) AND (dispatch_status IS NULL OR dispatch_status != 'skipped_test')");
         echo json_encode(['status' => 'success', 'message' => count($order_ids) . ' order(s) marked as dispatched.']);
     } else {
         echo json_encode(['status' => 'error', 'message' => 'No orders selected.']);
@@ -28,9 +33,10 @@ if (isset($_POST['action']) && $_POST['action'] === 'update_single_dispatch_stat
     ob_clean();
     header('Content-Type: application/json; charset=UTF-8');
     $order_id = isset($_POST['order_id']) ? intval($_POST['order_id']) : 0;
+    $item_id  = isset($_POST['item_id']) ? intval($_POST['item_id']) : 0;
     $dispatch_status = isset($_POST['dispatch_status']) ? trim($_POST['dispatch_status']) : '';
 
-    $allowed_statuses = ['pending', 'shadowfax', 'dispatch', 'dispatched', 'out_of_stock', 'out of stock', 'failed'];
+    $allowed_statuses = ['pending', 'shadowfax', 'dispatch', 'dispatched', 'out_of_stock', 'out of stock', 'failed', 'skipped_test'];
     if ($order_id > 0 && in_array(strtolower($dispatch_status), $allowed_statuses)) {
         $status_val = strtolower($dispatch_status);
         if ($status_val === 'dispatch') {
@@ -39,6 +45,10 @@ if (isset($_POST['action']) && $_POST['action'] === 'update_single_dispatch_stat
         $escaped_status = $db->real_escape_string($status_val);
 
         $db->query("UPDATE tbl_orders SET dispatch_status = '$escaped_status', dispatch_error = NULL WHERE order_id = $order_id");
+        if ($item_id > 0) {
+            $pk = function_exists('get_order_items_primary_key') ? get_order_items_primary_key($db) : 'item_id';
+            $db->query("UPDATE tbl_order_items SET dispatch_status = '$escaped_status', dispatch_error = NULL WHERE $pk = $item_id");
+        }
         echo json_encode(['status' => 'success', 'message' => 'Dispatch status updated successfully.']);
     } else {
         echo json_encode(['status' => 'error', 'message' => 'Invalid order ID or status.']);
@@ -126,9 +136,9 @@ if ($from_date !== '' && $to_date !== '') {
 }
 
 if ($exportType) {
-    $columns = "O.order_id, O.first_name, O.last_name, O.street_address, O.city, O.postcode, O.phone, O.ship_to_different, O.order_notes, O.payment_method, O.payment_status, O.order_status, DATE_FORMAT(O.created_at, '%d/%m/%Y %h:%i %p') as order_date, OI.product_title, OI.qty, OI.size, OI.price, OI.row_total as total_price, OI.shipping, IM.item_code, IM.description, IM.group_name, IM.brand_name, (SELECT GROUP_CONCAT(DISTINCT color_name SEPARATOR ',') FROM tbl_item_variants WHERE item_id = IM.id AND color_name != '') AS color_name";
+    $columns = "O.order_id, OI.transaction_id, O.first_name, O.last_name, O.street_address, O.city, O.postcode, O.phone, O.ship_to_different, O.order_notes, O.payment_method, O.payment_status, O.order_status, DATE_FORMAT(O.created_at, '%d/%m/%Y %h:%i %p') as order_date, OI.product_title, OI.qty, OI.size, OI.price, OI.row_total as total_price, OI.shipping, IM.item_code, IM.description, IM.group_name, IM.brand_name, (SELECT GROUP_CONCAT(DISTINCT color_name SEPARATOR ',') FROM tbl_item_variants WHERE item_id = IM.id AND color_name != '') AS color_name";
 } else {
-    $columns = "O.*, OI.*, (SELECT image_path FROM tbl_item_images WHERE item_id = IM.id ORDER BY sort_order ASC, id ASC LIMIT 1) AS picture";
+    $columns = "O.*, OI.*, OI.transaction_id AS item_transaction_id, OI.courier_awb AS item_courier_awb, OI.dispatch_status AS item_dispatch_status, OI.dispatch_error AS item_dispatch_error, (SELECT image_path FROM tbl_item_images WHERE item_id = IM.id ORDER BY sort_order ASC, id ASC LIMIT 1) AS picture";
 }
 
 $baseQuery = "FROM `tbl_orders` AS O INNER JOIN tbl_order_items AS OI ON OI.order_id=O.order_id INNER JOIN tbl_item_master AS IM ON IM.id = OI.product_id $where";
@@ -214,11 +224,20 @@ if ($totalRecordsWithLimit > 0) {
             $statusText = strtoupper($displayStatus);
         }
 
-        $dispatchStatusRaw = !empty($row['dispatch_status']) ? strtolower($row['dispatch_status']) : 'pending';
+        $itemPkCol = function_exists('get_order_items_primary_key') ? get_order_items_primary_key($db) : 'item_id';
+        $itemIdVal = (int)($row[$itemPkCol] ?? $row['item_id'] ?? $row['id'] ?? 0);
+        $tx_id     = !empty($row['item_transaction_id']) ? $row['item_transaction_id'] : (!empty($row['transaction_id']) ? $row['transaction_id'] : '-');
+        $itemAwb   = !empty($row['item_courier_awb']) ? $row['item_courier_awb'] : (!empty($row['courier_awb']) ? $row['courier_awb'] : '');
+
+        $dispatchStatusRaw = !empty($row['item_dispatch_status']) ? strtolower($row['item_dispatch_status']) : (!empty($row['dispatch_status']) ? strtolower($row['dispatch_status']) : 'pending');
         if ($dispatchStatusRaw === 'shadowfax') {
             $dispatchBadgeClass = 'label-info';
-            $dispatchStatusText = 'SHADOWFAX';
+            $dispatchStatusText = 'SHADOWFAX' . ($itemAwb ? ' (' . htmlspecialchars($itemAwb) . ')' : '');
             $dispatchIcon = 'fa-truck';
+        } elseif ($dispatchStatusRaw === 'skipped_test') {
+            $dispatchBadgeClass = 'label-default';
+            $dispatchStatusText = 'TEST ITEM (SKIPPED)';
+            $dispatchIcon = 'fa-ban';
         } elseif ($dispatchStatusRaw === 'out_of_stock' || $dispatchStatusRaw === 'out of stock') {
             $dispatchBadgeClass = 'label-danger';
             $dispatchStatusText = 'OUT OF STOCK';
@@ -227,9 +246,9 @@ if ($totalRecordsWithLimit > 0) {
             $dispatchBadgeClass = 'label-danger';
             $dispatchStatusText = 'FAILED';
             $dispatchIcon = 'fa-exclamation-triangle';
-        } elseif ($dispatchStatusRaw === 'dispatched' || $dispatchStatusRaw === 'dispatch' || !empty($row['delhivery_awb']) || !empty($row['courier_awb'])) {
+        } elseif ($dispatchStatusRaw === 'dispatched' || $dispatchStatusRaw === 'dispatch' || !empty($itemAwb)) {
             $dispatchBadgeClass = 'label-success';
-            $dispatchStatusText = 'DISPATCHED';
+            $dispatchStatusText = 'DISPATCHED' . ($itemAwb ? ' (' . htmlspecialchars($itemAwb) . ')' : '');
             $dispatchIcon = 'fa-truck';
         } else {
             $dispatchBadgeClass = 'label-warning';
@@ -246,7 +265,7 @@ if ($totalRecordsWithLimit > 0) {
             $balanceDisplay = '<span class="label label-warning" style="padding: 4px 8px; font-size: 11px; font-weight: bold;">₹' . number_format($rowBalanceAmt, 2) . '</span>';
         }
 
-        $dispatchTooltip = !empty($row['dispatch_error']) ? htmlspecialchars($row['dispatch_error']) : 'Click to change dispatch status';
+        $dispatchTooltip = !empty($row['item_dispatch_error']) ? htmlspecialchars($row['item_dispatch_error']) : (!empty($row['dispatch_error']) ? htmlspecialchars($row['dispatch_error']) : 'Click to change dispatch status');
 
         $html .= '<tr>
             <td>
@@ -263,9 +282,10 @@ if ($totalRecordsWithLimit > 0) {
                 <span class="label ' . $badgeClass . '" style="padding: 4px 8px; font-size: 11px; font-weight: bold;">' . htmlspecialchars($statusText) . '</span>
             </td>
             <td>
-                <span class="label ' . $dispatchBadgeClass . ' dispatch-status-trigger" data-order-id="' . $row['order_id'] . '" data-status="' . htmlspecialchars($dispatchStatusRaw) . '" onclick="event.stopPropagation(); openDispatchModal(this);" style="padding: 4px 8px; font-size: 11px; font-weight: bold; cursor: pointer;" title="' . $dispatchTooltip . '"><i class="fa ' . $dispatchIcon . '"></i> ' . $dispatchStatusText . ' <i class="fa fa-caret-down" style="margin-left: 2px;"></i></span>
+                <span class="label ' . $dispatchBadgeClass . ' dispatch-status-trigger" data-order-id="' . $row['order_id'] . '" data-item-id="' . $itemIdVal . '" data-status="' . htmlspecialchars($dispatchStatusRaw) . '" onclick="event.stopPropagation(); openDispatchModal(this);" style="padding: 4px 8px; font-size: 11px; font-weight: bold; cursor: pointer;" title="' . $dispatchTooltip . '"><i class="fa ' . $dispatchIcon . '"></i> ' . $dispatchStatusText . ' <i class="fa fa-caret-down" style="margin-left: 2px;"></i></span>
             </td>
              <td>' . htmlspecialchars($row['order_id']) . '</td>
+             <td><span class="label label-primary" style="font-family: monospace; font-size: 11px; letter-spacing: 0.5px; padding: 3px 6px;">' . htmlspecialchars($tx_id) . '</span></td>
              <td>
                  <img src="' . $imgSrc . '" class="img-thumbnail img-popup-trigger" alt="Product Image" style="max-height: 50px; max-width: 50px; object-fit: contain;" title="Click to view full image" onclick="event.stopPropagation(); showImageModal(this.src, \'' . htmlspecialchars(addslashes($row['product_title']), ENT_QUOTES) . '\', event);">
              </td>
@@ -290,7 +310,7 @@ if ($totalRecordsWithLimit > 0) {
     $data['pagination'] = include_pagination_component($page, $recordsPerPage, $totalRecords);
 } else {
     $html = '<tr>
-      <td colspan="19"> No Recently added</td>
+      <td colspan="20"> No Recently added</td>
    </tr>';
     $data['pagination'] = '';
 }

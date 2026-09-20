@@ -154,18 +154,21 @@ if (in_array($order['payment_status'], ['paid', 'partial_paid', 'shipping_paid']
 $is_cod = ($order['payment_method'] === 'cod');
 $target_payment_status = $is_cod ? 'partial_paid' : 'paid';
 $target_order_status   = 'success';
+$target_paid_amt       = $amount > 0 ? $amount : ($is_cod ? max(0.0, (float)$order['grand_total'] - (float)$order['subtotal']) : (float)$order['grand_total']);
 
 // Update order status in tbl_orders
 $db->update(
     "UPDATE tbl_orders 
      SET payment_status = ?, 
          order_status = ?,
+         paid_amount = ?,
          razorpay_payment_id = ?,
          razorpay_order_id = IF(razorpay_order_id IS NULL OR razorpay_order_id = '', ?, razorpay_order_id)
      WHERE order_id = ?",
-    'ssssi',
+    'ssdssi',
     $target_payment_status,
     $target_order_status,
+    $target_paid_amt,
     $payment_id,
     $rzp_order_id,
     $db_order_id

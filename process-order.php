@@ -109,20 +109,29 @@ if (!empty($full_customer_name)) {
     }
 }
 
+// Ensure schema has transaction_id & related courier columns
+if (function_exists('ensure_order_items_schema')) {
+    ensure_order_items_schema($db);
+}
+
 // Insert items into database
 foreach ($_SESSION['checkout_products'] as $item) {
-    $product_id    = isset($item['product_id'])    ? (int)   $item['product_id']    : null;
-    $product_title = isset($item['product_title']) ?         $item['product_title'] : 'Unknown Item';
-    $qty           = isset($item['quantity'])      ? (int)   $item['quantity']       : 1;
-    $size          = isset($item['size'])          ? (int)   $item['size']           : null;
-    $price         = isset($item['unit_price'])    ? (float) $item['unit_price']     : 0.00;
-    $row_total     = isset($item['row_total'])     ? (float) $item['row_total']      : 0.00;
-    $item_gst_amt  = round(($row_total * $gst_percent_val) / 100, 2);
+    $product_id     = isset($item['product_id'])    ? (int)   $item['product_id']    : null;
+    $product_title  = isset($item['product_title']) ?         $item['product_title'] : 'Unknown Item';
+    $qty            = isset($item['quantity'])      ? (int)   $item['quantity']       : 1;
+    $size           = isset($item['size'])          ? (int)   $item['size']           : null;
+    $price          = isset($item['unit_price'])    ? (float) $item['unit_price']     : 0.00;
+    $row_total      = isset($item['row_total'])     ? (float) $item['row_total']      : 0.00;
+    $item_gst_amt   = round(($row_total * $gst_percent_val) / 100, 2);
+    $transaction_id = function_exists('generate_item_transaction_id') ? generate_item_transaction_id($db) : ('BB' . str_pad(mt_rand(1, 99999999), 8, '0', STR_PAD_LEFT));
+    $is_test_item   = function_exists('is_testing_order_item') ? is_testing_order_item($item) : false;
+    $disp_status    = $is_test_item ? 'skipped_test' : 'pending';
+    $disp_err       = $is_test_item ? 'Testing item excluded from courier push' : null;
 
     $db->insert(
-        "INSERT INTO tbl_order_items (order_id, product_id, product_title, qty, size, price, gst_percent, gst_amount, row_total, shipping) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        'iisiiddddd',
+        "INSERT INTO tbl_order_items (order_id, product_id, product_title, qty, size, price, gst_percent, gst_amount, row_total, shipping, transaction_id, dispatch_status, dispatch_error) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        'iisiidddddsss',
         $new_order_id,
         $product_id,
         $product_title,
@@ -132,7 +141,10 @@ foreach ($_SESSION['checkout_products'] as $item) {
         $gst_percent_val,
         $item_gst_amt,
         $row_total,
-        $shipping
+        $shipping,
+        $transaction_id,
+        $disp_status,
+        $disp_err
     );
 }
 

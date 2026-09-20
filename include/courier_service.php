@@ -241,12 +241,29 @@ function createShadowfaxShipment($order)
 
     // 1. Payment mode & amounts
     $raw_pay_mode = strtoupper(trim($order['payment_mode'] ?? ''));
-    $pay_mode    = ($raw_pay_mode === 'COD') ? 'COD' : 'Prepaid';
-    $grand_total = (float)($order['grand_total'] ?? 0);
-    $subtotal    = (float)($order['subtotal'] ?? $grand_total);
-    $cod_amount  = ($pay_mode === 'COD') ? (float)($order['cod_amount'] ?? $grand_total) : 0.0;
-    $weight      = (float)($order['actual_weight'] ?? $order['weight'] ?? 100.0); // Weight in grams
+    $grand_total  = (float)($order['grand_total'] ?? 0);
+    $subtotal     = (float)($order['subtotal'] ?? $grand_total);
+    $paid_amount  = (float)($order['paid_amount'] ?? 0);
 
+    // Calculate rest (unpaid) balance amount for COD
+    $rest_amount = max(0.0, round($grand_total - $paid_amount, 2));
+
+    if ($raw_pay_mode === 'COD') {
+        if ($rest_amount <= 0.00) {
+            // Already fully paid; treat as Prepaid
+            $pay_mode   = 'Prepaid';
+            $cod_amount = 0.0;
+        } else {
+            $pay_mode   = 'COD';
+            // Only the rest amount goes into Shadowfax as cod_amount
+            $cod_amount = isset($order['cod_amount']) ? (float)$order['cod_amount'] : $rest_amount;
+        }
+    } else {
+        $pay_mode   = 'Prepaid';
+        $cod_amount = 0.0;
+    }
+
+    $weight      = (float)($order['actual_weight'] ?? $order['weight'] ?? 100.0); // Weight in grams
     $order_type  = !empty($order['order_type']) ? $order['order_type'] : (defined('SHADOWFAX_ORDER_TYPE') ? SHADOWFAX_ORDER_TYPE : 'marketplace');
 
     // 2. Order details object
@@ -589,11 +606,202 @@ function trackDelhiveryShipment($waybill)
 }
 
 /**
- * Dispatch an order by order_id from database using specified or active courier
+ * Dispatch an individual order item by item ID
+ * client_order_id will be the item's 10-digit transaction_id (bbXXXXXXXX)
+ * Testing items are automatically skipped and never pushed to Shadowfax.
+ *
+ * @param int $order_item_id tbl_order_items primary key ID
+ * @param string|null $courier_name 'shadowfax', 'delhivery', or null
+ * @return array Result with success, waybill, transaction_id, etc.
+ */
+function dispatchOrderItemById($order_item_id, $courier_name = null)
+{
+    $order_item_id = (int)$order_item_id;
+    if ($order_item_id <= 0) {
+        return ['success' => false, 'message' => 'Invalid Order Item ID.'];
+    }
+
+    $db = connect();
+    if (function_exists('ensure_order_items_schema')) {
+        ensure_order_items_schema($db);
+    }
+    $pk = function_exists('get_order_items_primary_key') ? get_order_items_primary_key($db) : 'item_id';
+
+    // Fetch the item
+    $item_stmt = $db->select("SELECT * FROM tbl_order_items WHERE $pk = ? LIMIT 1", 'i', $order_item_id);
+    if (!$item_stmt || !($itemData = $item_stmt->fetch_assoc())) {
+        return ['success' => false, 'message' => "Order Item #{$order_item_id} not found."];
+    }
+    $item_stmt->close();
+
+    // Ensure item has a 10-digit transaction ID (bbXXXXXXXX)
+    if (empty($itemData['transaction_id'])) {
+        $tx_id = function_exists('generate_item_transaction_id') ? generate_item_transaction_id($db) : ('BB' . str_pad(mt_rand(1, 99999999), 8, '0', STR_PAD_LEFT));
+        $db->update("UPDATE tbl_order_items SET transaction_id = ? WHERE $pk = ?", 'si', $tx_id, $order_item_id);
+        $itemData['transaction_id'] = $tx_id;
+    } else {
+        $tx_id = $itemData['transaction_id'];
+    }
+
+    // CHECK: Is this a testing item?
+    $is_test = function_exists('is_testing_order_item') ? is_testing_order_item($itemData) : false;
+    if ($is_test) {
+        $db->update(
+            "UPDATE tbl_order_items SET dispatch_status = 'skipped_test', dispatch_error = 'Testing item excluded from courier push' WHERE $pk = ?",
+            'i',
+            $order_item_id
+        );
+        return [
+            'success'        => false,
+            'is_test'        => true,
+            'transaction_id' => $tx_id,
+            'message'        => "Item #{$order_item_id} ({$itemData['product_title']}) is a testing item and was excluded from Shadowfax push."
+        ];
+    }
+
+    // Fetch parent order
+    $order_id = (int)$itemData['order_id'];
+    $order_stmt = $db->select(
+        "SELECT order_id, first_name, last_name, street_address, city, postcode, phone,
+                payment_method, payment_status, grand_total, subtotal, COALESCE(paid_amount, 0) as paid_amount
+         FROM tbl_orders
+         WHERE order_id = ? LIMIT 1",
+        'i',
+        $order_id
+    );
+    if (!$order_stmt || !($orderData = $order_stmt->fetch_assoc())) {
+        return ['success' => false, 'message' => "Parent Order #{$order_id} not found."];
+    }
+    $order_stmt->close();
+
+    // Payment mode & amounts for this item
+    $payment_method = strtolower($orderData['payment_method'] ?? 'cod');
+    $payment_status = strtolower($orderData['payment_status'] ?? 'pending');
+    $grand_total    = (float)($orderData['grand_total'] ?? 0);
+    $subtotal       = (float)($orderData['subtotal'] ?? 0);
+    $paid_amount    = (float)($orderData['paid_amount'] ?? 0);
+    $item_total     = (float)($itemData['row_total'] ?? $itemData['price'] ?? 100.0);
+
+    // Determine if the order is fully prepaid or non-COD
+    $is_order_paid = ($payment_method !== 'cod') || ($payment_status === 'paid') || ($grand_total > 0 && $paid_amount >= $grand_total);
+
+    if ($is_order_paid) {
+        $pay_mode   = 'Prepaid';
+        $cod_amount = 0.0;
+    } else {
+        $pay_mode = 'COD';
+        if ($payment_status === 'partial_paid' || $paid_amount > 0) {
+            // Online deposit (shipping/GST) was already paid upfront by customer.
+            // Only the item product balance (row_total) is collected as the rest amount!
+            $cod_amount = $item_total;
+        } else {
+            // Pure COD with 0 deposit: customer must pay item share including shipping + GST
+            $count_stmt = $db->select("SELECT COUNT(*) AS total_items FROM tbl_order_items WHERE order_id = ?", 'i', $order_id);
+            $count_row  = $count_stmt ? $count_stmt->fetch_assoc() : null;
+            $total_items = (int)($count_row['total_items'] ?? 1);
+            if ($count_stmt) $count_stmt->close();
+
+            if ($total_items <= 1) {
+                $cod_amount = $grand_total > 0 ? $grand_total : $item_total;
+            } else {
+                $ratio = ($subtotal > 0) ? ($item_total / $subtotal) : (1 / $total_items);
+                $cod_amount = round($grand_total * $ratio, 2);
+            }
+        }
+    }
+
+    $existing_awb = !empty($itemData['courier_awb']) ? $itemData['courier_awb'] : null;
+
+    $shipmentItem = [
+        'order_id'          => $order_id,
+        'client_order_id'   => $tx_id, // 10-digit transaction ID (e.g. bb12345678)
+        'customer_name'     => trim($orderData['first_name'] . ' ' . $orderData['last_name']),
+        'phone'             => $orderData['phone'],
+        'address'           => $orderData['street_address'],
+        'city'              => $orderData['city'],
+        'state'             => 'Delhi',
+        'pincode'           => $orderData['postcode'],
+        'payment_mode'      => $pay_mode,
+        'grand_total'       => $item_total,
+        'subtotal'          => $item_total,
+        'paid_amount'       => ($pay_mode === 'COD' && ($payment_status === 'partial_paid' || $paid_amount > 0)) ? 0.0 : $paid_amount,
+        'cod_amount'        => $cod_amount,
+        'item_count'        => 1,
+        'products_desc'     => $itemData['product_title'],
+        'items'             => [
+            [
+                'sku_id'             => 'SKU_' . ($itemData['product_id'] ?? $order_item_id),
+                'client_sku_id'      => 'SKU_' . ($itemData['product_id'] ?? $order_item_id),
+                'sku_name'           => $itemData['product_title'],
+                'price'              => (float)$itemData['price'],
+                'additional_details' => [
+                    'quantity'       => (int)($itemData['qty'] ?? 1),
+                    'size'           => (string)($itemData['size'] ?? ''),
+                    'transaction_id' => $tx_id
+                ]
+            ]
+        ]
+    ];
+
+    if (!empty($existing_awb)) {
+        $shipmentItem['awb_number'] = $existing_awb;
+    }
+
+    $result = createCourierShipment($shipmentItem, $courier_name);
+
+    if ($result['success'] && !empty($result['waybill'])) {
+        $courier_used = strtolower($result['courier_name'] ?? 'shadowfax');
+        $waybill      = $result['waybill'];
+
+        $db->update(
+            "UPDATE tbl_order_items SET courier_name = ?, courier_awb = ?, dispatch_status = ?, dispatch_error = NULL WHERE $pk = ?",
+            'sssi',
+            $courier_used,
+            $waybill,
+            $courier_used,
+            $order_item_id
+        );
+
+        return [
+            'success'        => true,
+            'is_test'        => false,
+            'courier_name'   => $courier_used,
+            'waybill'        => $waybill,
+            'transaction_id' => $tx_id,
+            'message'        => "Item #{$order_item_id} dispatched successfully via " . ucfirst($courier_used) . ". AWB: {$waybill}",
+            'raw'            => $result['raw'] ?? []
+        ];
+    }
+
+    $error_msg = $result['error'] ?? $result['raw']['errors'] ?? $result['raw']['message'] ?? 'Failed to create shipment with courier.';
+    if (is_array($error_msg)) {
+        $error_msg = json_encode($error_msg);
+    }
+
+    $db->update(
+        "UPDATE tbl_order_items SET dispatch_status = 'failed', dispatch_error = ? WHERE $pk = ?",
+        'si',
+        $error_msg,
+        $order_item_id
+    );
+
+    return [
+        'success'        => false,
+        'is_test'        => false,
+        'courier_name'   => $courier_name ?? getActiveCourier(),
+        'transaction_id' => $tx_id,
+        'message'        => "Courier creation error for item #{$order_item_id}: {$error_msg}",
+        'raw'            => $result['raw'] ?? []
+    ];
+}
+
+/**
+ * Dispatch all items of an order to Shadowfax / active courier item-wise.
+ * Testing items are automatically skipped and will not be pushed to courier.
  *
  * @param int $order_id Order ID
  * @param string|null $courier_name 'shadowfax', 'delhivery', or null
- * @return array Result array with success, courier_name, waybill, and message
+ * @return array Result array with summary of dispatch
  */
 function dispatchOrderById($order_id, $courier_name = null)
 {
@@ -603,98 +811,81 @@ function dispatchOrderById($order_id, $courier_name = null)
     }
 
     $db = connect();
-    $stmt = $db->select(
-        "SELECT order_id, first_name, last_name, street_address, city, postcode, phone,
-                payment_method, subtotal, gst_amount, grand_total, courier_name, courier_awb, delhivery_awb
-         FROM tbl_orders
-         WHERE order_id = ? LIMIT 1",
-        'i',
-        $order_id
-    );
-
-    if (!$stmt || !($orderData = $stmt->fetch_assoc())) {
-        return ['success' => false, 'message' => "Order #{$order_id} not found."];
+    if (function_exists('ensure_order_items_schema')) {
+        ensure_order_items_schema($db);
     }
-    $stmt->close();
+    $pk = function_exists('get_order_items_primary_key') ? get_order_items_primary_key($db) : 'item_id';
 
-    $existing_awb = !empty($orderData['courier_awb']) ? $orderData['courier_awb'] : (!empty($orderData['delhivery_awb']) ? $orderData['delhivery_awb'] : null);
-
-    $payment_method = strtolower($orderData['payment_method'] ?? 'cod');
-    $pay_mode = ($payment_method === 'cod') ? 'COD' : 'Prepaid';
-
-    $items_stmt = $db->select(
-        "SELECT COUNT(*) AS item_count FROM tbl_order_items WHERE order_id = ?",
-        'i',
-        $order_id
-    );
-    $itemsRow   = $items_stmt ? $items_stmt->fetch_assoc() : [];
-    $item_count = (int) ($itemsRow['item_count'] ?? 1);
-    if ($items_stmt) $items_stmt->close();
-
-    $shipmentOrder = [
-        'order_id'      => $orderData['order_id'],
-        'customer_name' => trim($orderData['first_name'] . ' ' . $orderData['last_name']),
-        'phone'         => $orderData['phone'],
-        'address'       => $orderData['street_address'],
-        'city'          => $orderData['city'],
-        'state'         => 'Delhi',
-        'pincode'       => $orderData['postcode'],
-        'payment_mode'  => $pay_mode,
-        'grand_total'   => (float)$orderData['grand_total'],
-        'subtotal'      => (float)$orderData['subtotal'],
-        'cod_amount'    => ($pay_mode === 'COD') ? (float)$orderData['grand_total'] : 0.0,
-        'item_count'    => $item_count,
-        'products_desc' => 'General Merchandise',
-    ];
-
-    if (!empty($existing_awb)) {
-        $shipmentOrder['awb_number'] = $existing_awb;
+    $items_stmt = $db->select("SELECT * FROM tbl_order_items WHERE order_id = ?", 'i', $order_id);
+    if (!$items_stmt || $items_stmt->num_rows == 0) {
+        return ['success' => false, 'message' => "No items found for order #{$order_id}."];
     }
 
-    $result = createCourierShipment($shipmentOrder, $courier_name);
+    $item_results       = [];
+    $all_awbs           = [];
+    $courier_used       = 'shadowfax';
+    $has_success        = false;
+    $has_failure        = false;
+    $skipped_test_count = 0;
 
-    if ($result['success'] && !empty($result['waybill'])) {
-        $courier_used      = strtolower($result['courier_name'] ?? 'shadowfax');
-        $waybill           = $result['waybill'];
-        $delhivery_awb_val = ($courier_used === 'delhivery') ? $waybill : null;
+    while ($item = $items_stmt->fetch_assoc()) {
+        $itemId = (int)$item[$pk];
+        $res = dispatchOrderItemById($itemId, $courier_name);
+        $item_results[$itemId] = $res;
 
+        if (!empty($res['is_test'])) {
+            $skipped_test_count++;
+        } elseif (!empty($res['success'])) {
+            $has_success = true;
+            if (!empty($res['waybill'])) {
+                $all_awbs[] = $res['waybill'];
+            }
+            if (!empty($res['courier_name'])) {
+                $courier_used = $res['courier_name'];
+            }
+        } else {
+            $has_failure = true;
+        }
+    }
+    $items_stmt->close();
+
+    // Update parent order level summary
+    $awb_string = implode(', ', $all_awbs);
+    if ($has_success) {
+        $order_dispatch_status = $courier_used;
         $db->update(
             "UPDATE tbl_orders SET dispatch_status = ?, courier_name = ?, courier_awb = ?, delhivery_awb = ?, dispatch_error = NULL, is_pincode_serviceable = 1 WHERE order_id = ?",
             'ssssi',
+            $order_dispatch_status,
             $courier_used,
-            $courier_used,
-            $waybill,
-            $delhivery_awb_val,
+            $awb_string,
+            ($courier_used === 'delhivery' ? $awb_string : null),
             $order_id
         );
-        return [
-            'success'      => true,
-            'courier_name' => $courier_used,
-            'waybill'      => $waybill,
-            'message'      => "Shipment created successfully via " . ucfirst($courier_used) . ". AWB: {$waybill}",
-            'raw'          => $result['raw'] ?? []
-        ];
+    } elseif ($has_failure) {
+        $db->update(
+            "UPDATE tbl_orders SET dispatch_status = 'failed', dispatch_error = 'One or more items failed dispatch' WHERE order_id = ?",
+            'i',
+            $order_id
+        );
+    } elseif ($skipped_test_count > 0 && !$has_success && !$has_failure) {
+        // Order contained only test items
+        $db->update(
+            "UPDATE tbl_orders SET dispatch_status = 'skipped_test', dispatch_error = 'All items were test items' WHERE order_id = ?",
+            'i',
+            $order_id
+        );
     }
-
-    $error_msg = $result['error'] ?? $result['raw']['errors'] ?? $result['raw']['message'] ?? 'Failed to create shipment with courier.';
-    if (is_array($error_msg)) {
-        $error_msg = json_encode($error_msg);
-    }
-
-    $is_serviceable_flag = (stripos($error_msg, 'not serviceble') !== false || stripos($error_msg, 'not serviceable') !== false || stripos($error_msg, 'invalid delivery pincode') !== false) ? 0 : 1;
-
-    $db->update(
-        "UPDATE tbl_orders SET dispatch_status = 'failed', dispatch_error = ?, is_pincode_serviceable = ? WHERE order_id = ?",
-        'sii',
-        $error_msg,
-        $is_serviceable_flag,
-        $order_id
-    );
 
     return [
-        'success'      => false,
-        'courier_name' => $courier_name ?? getActiveCourier(),
-        'message'      => "Courier creation error: {$error_msg}",
-        'raw'          => $result['raw'] ?? []
+        'success'            => $has_success || ($skipped_test_count > 0 && !$has_failure),
+        'courier_name'       => $courier_used,
+        'waybill'            => $awb_string,
+        'awbs'               => $all_awbs,
+        'skipped_test_count' => $skipped_test_count,
+        'item_results'       => $item_results,
+        'message'            => $has_success 
+            ? "Order items dispatched. AWBs: " . ($awb_string ?: 'N/A') . ($skipped_test_count > 0 ? " ({$skipped_test_count} test item(s) skipped)" : '')
+            : ($skipped_test_count > 0 ? "All items were test items - skipped Shadowfax push." : "Dispatch failed for order items.")
     ];
 }
