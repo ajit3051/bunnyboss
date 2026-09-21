@@ -76,7 +76,6 @@ $category = $_GET['category'] ?? '';
             <!-- End .col-lg-3 col-sm-6 -->
          </div>
          <!-- End .row -->
-         </div><!-- End .container-fluid -->
          
          <div class="page-content">
             <div class="container">
@@ -235,7 +234,70 @@ $category = $_GET['category'] ?? '';
           <style>
 .product-label.label-new {
     color: #fff;
-    background-color: #37475a; }
+    background-color: #37475a; 
+}
+/* Uniform 4-Sided Gap for Product Grid (Left, Right, Top, Bottom equal) */
+.products .row,
+#product-list {
+    margin-left: -10px !important;
+    margin-right: -10px !important;
+    margin-top: -10px !important;
+    margin-bottom: -10px !important;
+}
+
+.products .row > [class*="col-"],
+#product-list > [class*="col-"] {
+    padding: 10px !important;
+    margin-bottom: 0 !important;
+    display: flex !important;
+    align-items: stretch !important;
+    align-content: stretch !important;
+}
+
+.products .product,
+#product-list .product {
+    width: 100% !important;
+    height: 100% !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+}
+
+@media screen and (min-width: 992px) {
+    .products .row,
+    #product-list {
+        margin-left: -12px !important;
+        margin-right: -12px !important;
+        margin-top: -12px !important;
+        margin-bottom: -12px !important;
+    }
+
+    .products .row > [class*="col-"],
+    #product-list > [class*="col-"] {
+        padding: 12px !important;
+    }
+}
+
+/* Mobile adjustments for product cards to prevent horizontal overflow */
+@media screen and (max-width: 576px) {
+    .product .product-body {
+        padding: 10px 6px !important;
+    }
+    .product-size-select {
+        gap: 4px !important;
+        padding: 4px 0 !important;
+        flex-wrap: wrap !important;
+    }
+    .product-size-select .size-option {
+        width: 28px !important;
+        height: 28px !important;
+        line-height: 28px !important;
+        font-size: 11px !important;
+    }
+    .product-action-split .btn-product {
+        padding: 10px 4px !important;
+        font-size: 10px !important;
+    }
+}
           </style>
       </main>
       <!-- End .main -->
