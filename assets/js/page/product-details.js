@@ -222,3 +222,13 @@ $(document).on('click', '#btn-product-gallery', function (e) {
         closeBtnInside: false
     }, activeIdx);
 });
+
+// Smooth scroll and switch tab on clicking review link
+$(document).on('click', '#review-link', function (e) {
+    e.preventDefault();
+    if ($('#product-review-link').length) {
+        $('#product-review-link').tab('show');
+        var offsetTop = $('#product-review-link').offset().top - 120;
+        $('html, body').animate({ scrollTop: offsetTop }, 400);
+    }
+});
