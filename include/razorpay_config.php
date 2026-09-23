@@ -5,7 +5,7 @@ use Razorpay\Api\Api;
 
 // Enable / Disable Razorpay Payment Gateway
 if (!defined('_ENABLE_RAZORPAY_')) {
-    define('_ENABLE_RAZORPAY_', true); // Set to true to enable, false to disable
+    define('_ENABLE_RAZORPAY_', false); // Set to true to enable, false to disable
 }
 
 // Test Mode
@@ -22,6 +22,7 @@ define('RAZORPAY_KEY_SECRET', 'TezaLnffskn3W11Kfz0vwIzf');
 // Live Mode
 define('RAZORPAY_WEBHOOK_SECRET', 'QyF9EMU5xEshE@P');
 
-function getRazorpayApi() {
+function getRazorpayApi()
+{
     return new Api(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET);
 }
