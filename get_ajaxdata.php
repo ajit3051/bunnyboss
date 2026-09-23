@@ -139,7 +139,7 @@ if ($action === 'save_cart') {
                 'product_title' => isset($item['product_title']) ? htmlspecialchars(trim($item['product_title'])) : 'Unknown Item',
                 'unit_price' => floatval($item['unit_price']),
                 'quantity'   => intval($item['quantity']),
-                'size'   => intval($item['size']),
+                'size'       => isset($item['size']) ? trim($item['size']) : '',
                 'row_total'  => floatval($item['row_total'])
             ];
         }

@@ -360,6 +360,11 @@
 </script>
 <div id="toast"></div>
 
+<?php
+$current_loc = function_exists('getCurrentDeliveryLocation') 
+    ? getCurrentDeliveryLocation() 
+    : ['displayText' => 'Delhi 110059', 'city' => 'Delhi', 'pincode' => '110059'];
+?>
 <!-- DESKTOP HEADER (Logo Bar + Category Menu Bar) -->
 <div class="desktop-header-wrap">
     <!-- 1. LOGO BAR (Header Middle) -->
@@ -375,12 +380,12 @@
                     <span class="pulse-ring"></span>
                     <strong class="logo-text">BUNNY<span class="boss">BOSS</span></strong>
                 </a>
-                <div class="wishlist">
-                    <a href="wishlist.html" title="Wishlist">
+                <div class="wishlist header-delivery-btn" style="margin-left: 15px;">
+                    <a href="#location-modal" data-toggle="modal" title="Update Delivery Location" style="cursor: pointer; text-decoration: none;">
                         <div class="icon">
                             <i class="icon-map-marker"></i>
                         </div>
-                        <p style="font-size: 11px; margin: 0; line-height: 1.2;">Delivering to Delhi 123076<br><span style="font-weight: 600;">Update Location</span></p>
+                        <p style="font-size: 11px; margin: 0; line-height: 1.2;">Delivering to <strong class="header-loc-city"><?= htmlspecialchars($current_loc['displayText']) ?></strong><br><span style="font-weight: 600; color: #cc9966;" class="header-loc-action">Update Location</span></p>
                     </a>
                 </div>
             </div>
@@ -761,10 +766,10 @@
         </div>
     </div>
     <!-- Location -->
-    <div class="mobile-location" style="margin-top:-20px;">
+    <div class="mobile-location" data-toggle="modal" data-target="#location-modal" style="margin-top:-20px; cursor: pointer;">
         <i class="icon-map-marker"></i>
-        Delivering to Delhi 123076 -
-        <span>Update Location</span>
+        Delivering to <strong class="header-loc-city"><?= htmlspecialchars($current_loc['displayText']) ?></strong> -
+        <span class="header-loc-action" style="text-decoration: underline;">Update Location</span>
     </div>
     <!-- Search -->
     <form action="<?= _BASEURL ?>product-list.php" method="get">

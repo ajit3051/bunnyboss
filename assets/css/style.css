@@ -10854,12 +10854,40 @@ button:focus {
   .btn-layout:hover svg, .btn-layout:focus svg, .btn-layout.active svg {
     fill: #333; }
 
-.products > .row > [class*=col-] {
+.products .row,
+#product-list {
+  margin-left: -10px;
+  margin-right: -10px;
+  margin-top: -10px;
+  margin-bottom: -10px; }
+
+.products .row > [class*=col-],
+#product-list > [class*=col-] {
+  padding: 10px;
+  margin-bottom: 0;
   display: flex;
   align-items: stretch;
   align-content: stretch; }
-.products .product {
-  width: 100%; }
+
+@media screen and (min-width: 992px) {
+  .products .row,
+  #product-list {
+    margin-left: -12px;
+    margin-right: -12px;
+    margin-top: -12px;
+    margin-bottom: -12px; }
+
+  .products .row > [class*=col-],
+  #product-list > [class*=col-] {
+    padding: 12px;
+    margin-bottom: 0; } }
+
+.products .product,
+#product-list .product {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  box-sizing: border-box; }
 
 .product {
   overflow: hidden; }

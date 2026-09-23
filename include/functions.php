@@ -1231,3 +1231,46 @@ function is_testing_order_item($item_data)
 
     return false;
 }
+
+/**
+ * Get current active delivery location for the visitor (from session, cookie, or user's default saved address)
+ *
+ * @return array ['pincode' => string, 'city' => string, 'displayText' => string]
+ */
+function getCurrentDeliveryLocation()
+{
+    $pincode = $_SESSION['delivery_pincode'] ?? $_COOKIE['delivery_pincode'] ?? '';
+    $city    = $_SESSION['delivery_city'] ?? $_COOKIE['delivery_city'] ?? '';
+
+    // If not set in session/cookie and user is logged in, query their default address
+    if (empty($pincode) && !empty($_SESSION['user_id'])) {
+        $db = connect();
+        $uid = (int)$_SESSION['user_id'];
+        $stmt = $db->select("SELECT city, postcode FROM tbl_user_addresses WHERE user_id = ? ORDER BY is_default DESC, id DESC LIMIT 1", 'i', $uid);
+        if ($stmt && $row = $stmt->fetch_assoc()) {
+            if (!empty($row['postcode'])) {
+                $pincode = trim($row['postcode']);
+                $city = trim($row['city'] ?? '');
+                $_SESSION['delivery_pincode'] = $pincode;
+                $_SESSION['delivery_city'] = $city;
+            }
+        }
+    }
+
+    // Default fallback if still empty
+    if (empty($pincode)) {
+        $pincode = '110059';
+        $city = 'Delhi';
+    }
+
+    $clean_city = trim($city);
+    $clean_pin  = trim($pincode);
+    $displayText = !empty($clean_city) ? ($clean_city . ' ' . $clean_pin) : $clean_pin;
+
+    return [
+        'pincode'     => $clean_pin,
+        'city'        => $clean_city,
+        'displayText' => $displayText
+    ];
+}
+
