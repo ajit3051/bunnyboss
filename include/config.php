@@ -96,7 +96,7 @@ if (!defined('_ENABLE_COD_')) {
 }
 // COD Upfront Online Deposit Setting (Set to true to require upfront shipping/GST payment via Razorpay for COD, or false for 100% Pure COD)
 if (!defined('_ENABLE_COD_ONLINE_DEPOSIT_')) {
-    define("_ENABLE_COD_ONLINE_DEPOSIT_", true);
+    define("_ENABLE_COD_ONLINE_DEPOSIT_", false);
 }
 if (!defined('_COD_INCLUDES_GST_')) {
     define("_COD_INCLUDES_GST_", true);
