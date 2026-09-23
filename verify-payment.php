@@ -68,19 +68,22 @@ try {
         } else {
             $collect_amt = (float) $orderData['subtotal'] + (float) ($orderData['gst_amount'] ?? 0);
         }
+        $paid_amount = max(0.0, round((float)$orderData['grand_total'] - $collect_amt, 2));
         $delhivery_mode = 'COD';
     } else {
         $order_status   = 'success';
         $payment_status = 'paid';
         $collect_amt    = (float) $orderData['grand_total'];
+        $paid_amount    = (float) $orderData['grand_total'];
         $delhivery_mode = 'Prepaid';
     }
 
     $db->update(
-        "UPDATE tbl_orders SET payment_status = ?, order_status = ?, razorpay_payment_id = ?, razorpay_order_id = ? WHERE order_id = ?",
-        'ssssi',
+        "UPDATE tbl_orders SET payment_status = ?, order_status = ?, paid_amount = ?, razorpay_payment_id = ?, razorpay_order_id = ? WHERE order_id = ?",
+        'ssdssi',
         $payment_status,
         $order_status,
+        $paid_amount,
         $rzp_id,
         $rzp_order,
         $order_id

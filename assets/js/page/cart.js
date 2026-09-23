@@ -157,8 +157,10 @@ $(document).ready(function () {
                 
                 var price = parseFloat(priceText.replace(/[^0-9.-]+/g, "")) || 0;
                 var total = parseFloat(totalText.replace(/[^0-9.-]+/g, "")) || 0;
+                var rawSize = $row.find('.size-value').text().trim();
+                var parsedNum = parseInt(rawSize);
+                var size = isNaN(parsedNum) ? rawSize : parsedNum;
                 var qty = parseInt($row.find('.cart-product-quantity input').val()) || 1;
-                var size = parseInt($row.find('.size-value').text());
 
                 cartItems.push({
                     product_id: productId,

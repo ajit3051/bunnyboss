@@ -156,6 +156,7 @@
     window.openDispatchModal = function (el) {
         var $el = $(el);
         var orderId = $el.attr("data-order-id") || $el.data("order-id");
+        var itemId = $el.attr("data-item-id") || $el.data("item-id") || "";
         var currentStatus = $el.attr("data-status") || $el.data("status") || "pending";
 
         currentStatus = $.trim(currentStatus).toLowerCase();
@@ -164,6 +165,7 @@
 
         $("#singleModalOrderIdDisplay").text(orderId);
         $("#singleModalOrderId").val(orderId);
+        $("#singleModalItemId").val(itemId);
         $("#singleModalStatusSelect").val(currentStatus);
         $("#updateDispatchStatusModal").modal('show');
     };
@@ -177,6 +179,7 @@
     $("body").on("click", "#btnSaveSingleDispatchStatus", function (e) {
         e.preventDefault();
         var orderId = $("#singleModalOrderId").val();
+        var itemId = $("#singleModalItemId").val();
         var dispatchStatus = $("#singleModalStatusSelect").val();
 
         if (!orderId) return;
@@ -190,6 +193,7 @@
             data: {
                 action: 'update_single_dispatch_status',
                 order_id: orderId,
+                item_id: itemId,
                 dispatch_status: dispatchStatus
             },
             dataType: 'json',

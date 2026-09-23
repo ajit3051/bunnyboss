@@ -137,6 +137,7 @@
                                <th>Payment Status</th>
                                <th>Dispatch Status</th>
                               <th>Order ID</th>
+                              <th>Txn ID</th>
                               <th>Picture</th>
                                <th>Size</th>
                                <th>Qty</th>
@@ -204,13 +205,16 @@
          <div class="modal-body" style="padding: 20px;">
             <form id="singleDispatchStatusForm">
                <input type="hidden" id="singleModalOrderId" name="order_id" value="">
+               <input type="hidden" id="singleModalItemId" name="item_id" value="">
                <div class="form-group">
                   <label for="singleModalStatusSelect" style="font-weight: 600; margin-bottom: 8px;">Select Dispatch Status:</label>
                   <select id="singleModalStatusSelect" name="dispatch_status" class="form-control" style="height: 40px; font-size: 14px;">
                      <option value="pending">Pending</option>
                      <option value="shadowfax">Shadowfax</option>
                      <option value="dispatched">Dispatched</option>
+                     <option value="skipped_test">Skipped (Test Item)</option>
                      <option value="out_of_stock">Out of Stock</option>
+                     <option value="failed">Failed</option>
                   </select>
                </div>
             </form>

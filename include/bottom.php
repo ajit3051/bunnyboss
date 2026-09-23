@@ -189,6 +189,7 @@
          <!-- End .modal-dialog -->
       </div>
       <!-- End .modal -->
+      <?php include('include/location_modal.php'); ?>
       <script>
       document.addEventListener('DOMContentLoaded', function() {
           if (typeof jQuery === 'undefined') return;
