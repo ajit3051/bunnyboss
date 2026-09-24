@@ -1107,7 +1107,7 @@ $(document.body).ready(function() {
         $('#orderTrackModal').modal('show');
 
         $.ajax({
-            url: 'track-order.php',
+            url: '<?= _BASEURL ?>track-order.php',
             type: 'GET',
             data: { query: orderId },
             dataType: 'json',

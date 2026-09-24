@@ -123,14 +123,15 @@
                   <span aria-hidden="true"><i class="icon-close"></i></span>
                   </button>
                   <div class="form-box">
+                     <?php $is_sms_active = defined('_ENABLE_SMS_') && (bool)_ENABLE_SMS_; ?>
                      <div class="text-center mb-3">
-                        <h4 class="font-weight-bold mb-1" style="font-size: 20px; color: #1e293b;"><i class="icon-phone mr-1"></i> Sign In with Mobile OTP</h4>
-                        <p class="text-muted small mb-0">Fast &amp; secure passwordless verification</p>
+                        <h4 class="font-weight-bold mb-1" style="font-size: 20px; color: #1e293b;"><i class="icon-phone mr-1"></i> Sign In with Mobile<?= $is_sms_active ? ' OTP' : '' ?></h4>
+                        <p class="text-muted small mb-0"><?= $is_sms_active ? 'Fast &amp; secure passwordless verification' : 'Enter your mobile number to sign in instantly' ?></p>
                      </div>
                      <div class="tab-content" id="tab-content-5">
-                        <!-- Mobile OTP Pane -->
+                        <!-- Mobile Login Pane -->
                         <div class="tab-pane fade show active" id="mobile-otp-pane" role="tabpanel">
-                           <!-- Step 1: Send OTP -->
+                           <!-- Step 1: Mobile Number Input -->
                            <form id="form-send-otp" novalidate>
                               <div id="otp-msg-step1" class="mb-2"></div>
                               <div class="form-group mb-2">
@@ -141,17 +142,18 @@
                                     </div>
                                     <input type="tel" class="form-control" id="otp-mobile" name="mobile" placeholder="Enter 10-digit mobile number" maxlength="16" autocomplete="tel" inputmode="numeric" required>
                                  </div>
-                                 <small class="form-text text-muted">We will send a 6-digit OTP to verify your mobile number.</small>
+                                 <small class="form-text text-muted"><?= $is_sms_active ? 'We will send a 6-digit OTP to verify your mobile number.' : 'Enter your 10-digit mobile number to log in.' ?></small>
                               </div>
                               <div class="form-footer mt-3">
                                  <button type="submit" id="btn-send-otp" class="btn btn-outline-primary-2 btn-block">
-                                    <span>GET OTP</span>
+                                    <span><?= $is_sms_active ? 'GET OTP' : 'LOG IN' ?></span>
                                     <i class="icon-long-arrow-right"></i>
                                  </button>
                               </div>
                            </form>
 
-                           <!-- Step 2: Verify OTP -->
+                           <?php if ($is_sms_active): ?>
+                           <!-- Step 2: Verify OTP (Only when SMS is enabled) -->
                            <form id="form-verify-otp" style="display: none;">
                               <div class="text-center mb-3">
                                  <p class="mb-1">OTP sent to <strong>+91-<span id="display-otp-mobile"></span></strong></p>
@@ -173,6 +175,7 @@
                                  </button>
                               </div>
                            </form>
+                           <?php endif; ?>
                         </div>
                      </div>
                   </div>
@@ -267,7 +270,9 @@
               }
           });
 
-          // Step 1: Send OTP
+          var isSmsActive = <?= json_encode($is_sms_active) ?>;
+
+          // Step 1: Send OTP or Direct Mobile Login
           $('#form-send-otp').on('submit', function(e) {
               e.preventDefault();
               var $input = $('#otp-mobile');
@@ -284,31 +289,57 @@
               }
 
               $input.removeClass('is-invalid').addClass('is-valid');
-              $btn.prop('disabled', true).find('span').text('SENDING...');
+              $btn.prop('disabled', true).find('span').text(isSmsActive ? 'SENDING...' : 'LOGGING IN...');
               $msg.html('');
 
-              $.ajax({
-                  url: '<?= _BASEURL ?>include/auth_api.php',
-                  type: 'POST',
-                  data: { action: 'send_otp', mobile: mobile },
-                  dataType: 'json',
-                  success: function(res) {
-                      $btn.prop('disabled', false).find('span').text('GET OTP');
-                      if (res.success) {
-                          $('#display-otp-mobile').text(mobile);
-                          $('#form-send-otp').hide();
-                          $('#form-verify-otp').show();
-                          $('#otp-code').val('').focus();
-                          startOtpTimer(30);
-                      } else {
-                          $msg.html('<div class="alert alert-danger py-2">' + res.message + '</div>');
+              if (isSmsActive) {
+                  $.ajax({
+                      url: '<?= _BASEURL ?>include/auth_api.php',
+                      type: 'POST',
+                      data: { action: 'send_otp', mobile: mobile },
+                      dataType: 'json',
+                      success: function(res) {
+                          $btn.prop('disabled', false).find('span').text('GET OTP');
+                          if (res.success) {
+                              $('#display-otp-mobile').text(mobile);
+                              $('#form-send-otp').hide();
+                              $('#form-verify-otp').show();
+                              $('#otp-code').val('').focus();
+                              startOtpTimer(30);
+                          } else {
+                              $msg.html('<div class="alert alert-danger py-2">' + res.message + '</div>');
+                          }
+                      },
+                      error: function() {
+                          $btn.prop('disabled', false).find('span').text('GET OTP');
+                          $msg.html('<div class="alert alert-danger py-2">Failed to send OTP. Please try again.</div>');
                       }
-                  },
-                  error: function() {
-                      $btn.prop('disabled', false).find('span').text('GET OTP');
-                      $msg.html('<div class="alert alert-danger py-2">Failed to send OTP. Please try again.</div>');
-                  }
-              });
+                  });
+              } else {
+                  // Direct mobile login without OTP when SMS is disabled
+                  $.ajax({
+                      url: '<?= _BASEURL ?>include/auth_api.php',
+                      type: 'POST',
+                      data: { action: 'mobile_direct_login', mobile: mobile },
+                      dataType: 'json',
+                      success: function(res) {
+                          if (res.success) {
+                              $btn.find('span').text('SUCCESS!');
+                              $msg.html('<div class="alert alert-success py-2">' + res.message + ' Redirecting...</div>');
+                              setTimeout(function() {
+                                  window.location.href = res.redirect_url || window.location.href;
+                              }, 800);
+                          } else {
+                              $btn.prop('disabled', false).find('span').text('LOG IN');
+                              $msg.html('<div class="alert alert-danger py-2">' + res.message + '</div>');
+                          }
+                      },
+                      error: function() {
+                          $btn.prop('disabled', false).find('span').text('LOG IN');
+                          $msg.html('<div class="alert alert-danger py-2">Login failed. Please try again.</div>');
+                      }
+                  });
+              }
           });
 
           // Step 2: Verify OTP

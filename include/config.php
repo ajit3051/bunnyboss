@@ -88,9 +88,7 @@ if (!defined('_SHIPPING_CHARGE_')) {
 if (!defined('_SHIPPING_CHARGE_PER_ITEM_')) {
     define("_SHIPPING_CHARGE_PER_ITEM_", "150");
 }
-if (!defined('_ENABLE_MOBILE_VERIFICATION_')) {
-    define("_ENABLE_MOBILE_VERIFICATION_", true);
-}
+
 if (!defined('_ENABLE_COD_')) {
     define("_ENABLE_COD_", true);
 }

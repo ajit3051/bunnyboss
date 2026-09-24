@@ -53,7 +53,7 @@ $_SESSION['checkout_summary'] = [
 ];
 
 // Check user session for auto-filling and verification
-$enable_mobile_verification = defined('_ENABLE_MOBILE_VERIFICATION_') ? (bool)_ENABLE_MOBILE_VERIFICATION_ : true;
+$enable_mobile_verification = defined('_ENABLE_SMS_') && (bool)_ENABLE_SMS_;
 $enable_cod = defined('_ENABLE_COD_') ? (bool)_ENABLE_COD_ : true;
 $enable_razorpay = defined('_ENABLE_RAZORPAY_') ? (bool)_ENABLE_RAZORPAY_ : true;
 $enable_cod_online_deposit = defined('_ENABLE_COD_ONLINE_DEPOSIT_') ? (bool)_ENABLE_COD_ONLINE_DEPOSIT_ : false;
@@ -95,6 +95,127 @@ if ($is_user_logged_in && !empty($_SESSION['user_id'])) {
 
 include('include/top.php');
 ?>
+<style>
+/* Checkout Phone & Verify Button Layout Fix */
+.checkout-phone-input-group {
+    display: flex !important;
+    position: relative !important;
+    align-items: stretch !important;
+    width: 100% !important;
+    margin-bottom: 0.3rem !important;
+}
+
+.checkout .checkout-phone-input-group .input-group-prepend {
+    margin-right: -1px !important;
+    display: flex !important;
+}
+
+.checkout .checkout-phone-input-group .input-group-prepend .input-group-text {
+    height: 42px !important;
+    background-color: #f3f4f6 !important;
+    border: 1px solid #dcdcdc !important;
+    border-right: none !important;
+    color: #4b5563 !important;
+    font-weight: 700 !important;
+    font-size: 13px !important;
+    padding: 0 12px !important;
+    border-radius: 4px 0 0 4px !important;
+    display: flex !important;
+    align-items: center !important;
+    margin: 0 !important;
+}
+
+.checkout .checkout-phone-input-group .form-control#phone {
+    height: 42px !important;
+    min-height: 42px !important;
+    margin-bottom: 0 !important;
+    border: 1px solid #dcdcdc !important;
+    border-radius: 0 !important;
+    font-size: 14px !important;
+    padding: 8px 14px !important;
+    background-color: #fafafa !important;
+    flex: 1 1 auto !important;
+    width: 1% !important;
+    transition: border-color 0.2s, background-color 0.2s !important;
+}
+
+.checkout .checkout-phone-input-group .form-control#phone:focus {
+    background-color: #ffffff !important;
+    border-color: #cc6666 !important;
+    box-shadow: none !important;
+}
+
+.checkout .checkout-phone-input-group .input-group-append {
+    margin-left: -1px !important;
+    display: flex !important;
+}
+
+.checkout .checkout-phone-input-group .btn-checkout-verify {
+    height: 42px !important;
+    min-height: 42px !important;
+    min-width: auto !important;
+    padding: 0 18px !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.4px !important;
+    text-transform: uppercase !important;
+    white-space: nowrap !important;
+    border-radius: 0 4px 4px 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    line-height: 1 !important;
+    border: 1px solid #cc6666 !important;
+    background-color: #cc6666 !important;
+    color: #ffffff !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease-in-out !important;
+    box-shadow: 0 2px 4px rgba(204, 102, 102, 0.2) !important;
+}
+
+.checkout .checkout-phone-input-group .btn-checkout-verify:hover {
+    background-color: #bf4040 !important;
+    border-color: #bf4040 !important;
+    color: #ffffff !important;
+    box-shadow: 0 3px 6px rgba(204, 102, 102, 0.3) !important;
+}
+
+.checkout .checkout-phone-input-group .btn-checkout-verify:disabled {
+    opacity: 0.65 !important;
+    cursor: not-allowed !important;
+    box-shadow: none !important;
+}
+
+/* When verified and readonly or when verification button is absent */
+.checkout .checkout-phone-input-group .form-control#phone[readonly],
+.checkout .checkout-phone-input-group .form-control#phone:last-child {
+    background-color: #f8fafc !important;
+    border-color: #cbd5e1 !important;
+    color: #334155 !important;
+    border-radius: 0 4px 4px 0 !important;
+}
+
+#phone-invalid-msg {
+    display: none;
+    font-size: 12.5px;
+    color: #e53e3e;
+    margin-top: 4px;
+    font-weight: 500;
+}
+
+.checkout-otp-card {
+    border-radius: 8px !important;
+    border: 1.5px solid #cc6666 !important;
+    background-color: #fff9f9 !important;
+    box-shadow: 0 4px 15px rgba(204, 102, 102, 0.08) !important;
+}
+
+#phone-verified-badge {
+    font-size: 11px;
+    letter-spacing: 0.3px;
+    border-radius: 4px;
+}
+</style>
 
 <main class="main">
 	<div class="page-header text-center" style="background-image: url('assets/images/page-header-bg.jpg')">
@@ -168,19 +289,24 @@ include('include/top.php');
 
 							<div class="row">
 								<div class="col-sm-6">
-									<label for="phone">
-										Phone *
+									<label for="phone" class="d-flex align-items-center justify-content-between">
+										<span>Phone Number *</span>
 										<?php if ($enable_mobile_verification): ?>
-											<span id="phone-verified-badge" class="badge badge-success ml-2" style="<?= $is_user_logged_in ? '' : 'display: none;' ?>">
+											<span id="phone-verified-badge" class="badge badge-success ml-2 py-1 px-2" style="<?= $is_user_logged_in ? '' : 'display: none;' ?>">
 												<i class="icon-check"></i> <?= $is_user_logged_in ? 'Verified Account' : 'Verified' ?>
 											</span>
 										<?php endif; ?>
 									</label>
-									<div class="input-group mb-1">
+									<div class="input-group checkout-phone-input-group mb-1">
+										<div class="input-group-prepend">
+											<span class="input-group-text font-weight-bold">+91</span>
+										</div>
 										<input type="tel" class="form-control" name="phone" id="phone" value="<?= htmlspecialchars($logged_user_mobile) ?>" placeholder="Enter 10-digit mobile number" maxlength="16" required data-verified="<?= $is_phone_verified ? 'true' : 'false' ?>" <?= $is_user_logged_in ? 'readonly' : '' ?>>
 										<?php if ($enable_mobile_verification && !$is_user_logged_in): ?>
 											<div class="input-group-append">
-												<button type="button" class="btn btn-outline-primary" id="btn-checkout-send-otp" style="padding: 0.5rem 1rem;">Verify Mobile</button>
+												<button type="button" class="btn btn-checkout-verify" id="btn-checkout-send-otp">
+													<span>Verify Mobile</span>
+												</button>
 											</div>
 										<?php endif; ?>
 									</div>
@@ -192,21 +318,22 @@ include('include/top.php');
 							<?php if ($enable_mobile_verification && !$is_user_logged_in): ?>
 								<div class="row mt-2" id="checkout-otp-wrapper" style="display: none;">
 									<div class="col-sm-6">
-										<div class="card card-body bg-light p-3 border-primary" style="border-radius: 8px;">
+										<div class="card checkout-otp-card p-3">
 											<div class="text-center mb-2">
-												<strong class="text-dark"><i class="icon-phone"></i> Mobile Verification Required</strong>
-												<p class="small text-muted mb-0">OTP sent to <strong>+91-<span id="checkout-display-mobile"></span></strong></p>
+												<h6 class="font-weight-bold mb-1 text-dark"><i class="icon-mobile mr-1"></i> Verify Mobile Number</h6>
+												<p class="small text-muted mb-0">Enter the 6-digit OTP sent to <strong>+91-<span id="checkout-display-mobile"></span></strong></p>
 											</div>
 											<div class="form-group mb-2">
-												<input type="text" class="form-control text-center font-weight-bold" id="checkout-otp-input" placeholder="Enter 6-digit OTP" maxlength="6" style="font-size: 18px; letter-spacing: 4px;" autocomplete="off">
+												<input type="text" class="form-control text-center font-weight-bold" id="checkout-otp-input" placeholder="• • • • • •" maxlength="6" style="font-size: 20px; letter-spacing: 5px; height: 42px;" autocomplete="off">
 											</div>
 											<div id="checkout-otp-msg" class="mb-2"></div>
-											<div class="d-flex justify-content-between align-items-center mb-2 px-1">
+											<div class="d-flex justify-content-between align-items-center mb-3 px-1">
 												<span id="checkout-timer-text" class="text-muted small">Resend in <strong id="checkout-otp-countdown">30</strong>s</span>
-												<button type="button" id="btn-checkout-resend-otp" class="btn btn-link btn-sm p-0 text-primary" style="display: none;">Resend OTP</button>
+												<button type="button" id="btn-checkout-resend-otp" class="btn btn-link btn-sm p-0 text-primary font-weight-bold" style="display: none; min-width: auto;">Resend OTP</button>
 											</div>
-											<button type="button" id="btn-checkout-verify-otp" class="btn btn-primary btn-block">
-												<span>VERIFY OTP & CONTINUE</span>
+											<button type="button" id="btn-checkout-verify-otp" class="btn btn-primary btn-block" style="min-width: auto; height: 42px; font-weight: 600;">
+												<span>VERIFY OTP &amp; CONTINUE</span>
+												<i class="icon-long-arrow-right ml-2"></i>
 											</button>
 										</div>
 									</div>

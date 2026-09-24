@@ -93,7 +93,7 @@ $(function () {
                     $msg.html('<div class="alert alert-success py-1 px-2 mb-0 small"><i class="icon-check"></i> Mobile Verified & Registered!</div>');
                     $('#phone').attr('data-verified', 'true').prop('readonly', true);
                     $('#phone-verified-badge').html('<i class="icon-check"></i> Verified').show();
-                    $('#btn-checkout-send-otp').hide();
+                    $('#btn-checkout-send-otp').closest('.input-group-append').hide();
 
                     setTimeout(function () {
                         $('#checkout-otp-wrapper').slideUp();
@@ -176,11 +176,20 @@ $(function () {
     // ── Validation helpers ───────────────────────────────────────────────
     function showFieldError($field, message) {
         $field.addClass('is-invalid');
-        $field.siblings('.invalid-feedback').text(message);
+        if ($field.attr('id') === 'phone') {
+            $('#phone-invalid-msg').text(message).show();
+        } else {
+            $field.siblings('.invalid-feedback').text(message);
+        }
     }
 
     function clearFieldError($field) {
         $field.removeClass('is-invalid');
+        if ($field.attr('id') === 'phone') {
+            $('#phone-invalid-msg').text('').hide();
+        } else {
+            $field.siblings('.invalid-feedback').text('');
+        }
     }
 
     function validateForm() {

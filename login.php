@@ -702,13 +702,14 @@ if (!empty($_SESSION['user_id'])) {
                     </div>
 
                     <!-- RIGHT PANEL: Interactive Login Form -->
+                    <!-- RIGHT PANEL: Interactive Login Form -->
                     <div class="auth-form-panel">
-                        
+                        <?php $is_sms_active = defined('_ENABLE_SMS_') && (bool)_ENABLE_SMS_; ?>
                         <!-- Tab Selector -->
                         <div class="auth-segmented-tabs">
                             <button type="button" class="auth-tab-btn active" id="tab-btn-otp">
                                 <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
-                                <span>Mobile OTP Login</span>
+                                <span><?= $is_sms_active ? 'Mobile OTP Login' : 'Mobile Login' ?></span>
                             </button>
                             <button type="button" class="auth-tab-btn" id="tab-btn-password">
                                 <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
@@ -716,13 +717,13 @@ if (!empty($_SESSION['user_id'])) {
                             </button>
                         </div>
 
-                        <!-- SECTION 1: MOBILE OTP FLOW -->
+                        <!-- SECTION 1: MOBILE FLOW -->
                         <div id="section-otp-flow" class="fade-slide-in">
                             
                             <!-- STEP 1: PHONE NUMBER INPUT -->
                             <div id="step-phone-input">
                                 <h3 class="auth-header-title">Welcome to BunnyBoss</h3>
-                                <p class="auth-header-sub">Enter your 10-digit mobile number to receive a secure login OTP.</p>
+                                <p class="auth-header-sub"><?= $is_sms_active ? 'Enter your 10-digit mobile number to receive a secure login OTP.' : 'Enter your 10-digit mobile number to sign in instantly.' ?></p>
 
                                 <form id="form-login-phone" novalidate>
                                     <div class="form-group mb-3">
@@ -753,7 +754,7 @@ if (!empty($_SESSION['user_id'])) {
                                     <div id="phone-feedback-msg"></div>
 
                                     <button type="submit" id="btn-request-otp" class="btn-auth-primary">
-                                        <span class="btn-text">GET VERIFICATION OTP</span>
+                                        <span class="btn-text"><?= $is_sms_active ? 'GET VERIFICATION OTP' : 'SIGN IN WITH MOBILE' ?></span>
                                         <svg class="btn-icon" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
                                     </button>
                                 </form>
@@ -764,6 +765,7 @@ if (!empty($_SESSION['user_id'])) {
                                 </p>
                             </div>
 
+                            <?php if ($is_sms_active): ?>
                             <!-- STEP 2: OTP ENTRY SCREEN -->
                             <div id="step-otp-verify" style="display: none;">
                                 <div class="d-flex justify-content-between align-items-center mb-1">
@@ -809,6 +811,7 @@ if (!empty($_SESSION['user_id'])) {
                                     </button>
                                 </form>
                             </div>
+                            <?php endif; ?>
                         </div>
 
                         <!-- SECTION 2: PASSWORD SIGN IN FLOW -->
@@ -816,16 +819,16 @@ if (!empty($_SESSION['user_id'])) {
                             <h3 class="auth-header-title">Password Sign In</h3>
                             <p class="auth-header-sub">Enter your email or username and password to log in.</p>
 
-                            <form id="form-password-signin" onsubmit="event.preventDefault(); alert('Please use Mobile OTP Login for instant, secure authentication without remembering passwords.');">
+                            <form id="form-password-signin" novalidate>
                                 <div class="form-group mb-3">
                                     <label class="form-label-custom">Email or Username</label>
-                                    <input type="text" class="input-standard" placeholder="name@domain.com" required>
+                                    <input type="text" id="input-signin-user" class="input-standard" placeholder="name@domain.com" required>
                                 </div>
 
                                 <div class="form-group mb-3">
                                     <div class="d-flex justify-content-between align-items-center mb-1">
                                         <label class="form-label-custom mb-0">Password</label>
-                                        <a href="#" class="small text-muted" onclick="alert('Password reset link is sent via customer support. We recommend logging in via Mobile OTP.');">Forgot?</a>
+                                        <a href="#" class="small text-muted" onclick="alert('Please contact store support to reset your password.'); return false;">Forgot?</a>
                                     </div>
                                     <div class="password-wrapper">
                                         <input type="password" id="input-signin-pwd" class="input-standard" placeholder="Enter your password" required>
@@ -835,7 +838,9 @@ if (!empty($_SESSION['user_id'])) {
                                     </div>
                                 </div>
 
-                                <button type="submit" class="btn-auth-primary">
+                                <div id="password-feedback-msg" class="mb-3"></div>
+
+                                <button type="submit" id="btn-submit-password" class="btn-auth-primary">
                                     <span class="btn-text">SIGN IN WITH PASSWORD</span>
                                     <svg class="btn-icon" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
                                 </button>
@@ -857,6 +862,7 @@ if (!empty($_SESSION['user_id'])) {
 
         var countdownTimer = null;
         var secondsRemaining = 30;
+        var isSmsActive = <?= json_encode($is_sms_active) ?>;
 
         // Tab Switching
         $('#tab-btn-otp').on('click', function() {
@@ -871,6 +877,45 @@ if (!empty($_SESSION['user_id'])) {
             $('#tab-btn-otp').removeClass('active');
             $('#section-otp-flow').hide();
             $('#section-password-flow').show().addClass('fade-slide-in');
+        });
+
+        // Password Sign In Submit Handler
+        $('#form-password-signin').on('submit', function(e) {
+            e.preventDefault();
+            var user = $('#input-signin-user').val().trim();
+            var pwd = $('#input-signin-pwd').val().trim();
+            var $btn = $('#btn-submit-password');
+            var $msg = $('#password-feedback-msg');
+
+            if (!user || !pwd) {
+                $msg.html('<div class="custom-alert custom-alert-danger"><span>Please enter your username/email and password.</span></div>');
+                return;
+            }
+
+            $btn.prop('disabled', true).find('.btn-text').text('SIGNING IN...');
+            $msg.html('');
+
+            $.ajax({
+                url: '<?= _BASEURL ?>include/auth_api.php',
+                type: 'POST',
+                data: { action: 'password_login', username: user, password: pwd },
+                dataType: 'json',
+                success: function(res) {
+                    $btn.prop('disabled', false).find('.btn-text').text('SIGN IN WITH PASSWORD');
+                    if (res.success) {
+                        $msg.html('<div class="custom-alert custom-alert-success"><svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span>' + res.message + ' Redirecting...</span></div>');
+                        setTimeout(function() {
+                            window.location.href = res.redirect_url || '<?= _BASEURL ?>index.php';
+                        }, 800);
+                    } else {
+                        $msg.html('<div class="custom-alert custom-alert-danger"><span>' + res.message + '</span></div>');
+                    }
+                },
+                error: function() {
+                    $btn.prop('disabled', false).find('.btn-text').text('SIGN IN WITH PASSWORD');
+                    $msg.html('<div class="custom-alert custom-alert-danger"><span>Sign in request failed. Please try again.</span></div>');
+                }
+            });
         });
 
         function cleanPhone(raw) {
@@ -1024,35 +1069,61 @@ if (!empty($_SESSION['user_id'])) {
 
             $container.css('border-color', '#10b981');
             $feedback.html('');
-            $btn.prop('disabled', true).find('.btn-text').html('<span class="spinner-inline mr-2"></span>SENDING OTP...');
+            $btn.prop('disabled', true).find('.btn-text').html('<span class="spinner-inline mr-2"></span>' + (isSmsActive ? 'SENDING OTP...' : 'SIGNING IN...'));
 
-            $.ajax({
-                url: '<?= _BASEURL ?>include/auth_api.php',
-                type: 'POST',
-                data: { action: 'send_otp', mobile: mobile },
-                dataType: 'json',
-                success: function(res) {
-                    $btn.prop('disabled', false).find('.btn-text').text('GET VERIFICATION OTP');
-                    if (res.success) {
-                        $('#display-target-mobile').text(mobile);
-                        $('#step-phone-input').hide();
-                        $('#step-otp-verify').fadeIn(300);
-                        
-                        // Clear & focus first OTP digit
-                        $otpInputs.val('');
-                        $('#full-otp-value').val('');
-                        $otpInputs.first().focus();
+            if (isSmsActive) {
+                $.ajax({
+                    url: '<?= _BASEURL ?>include/auth_api.php',
+                    type: 'POST',
+                    data: { action: 'send_otp', mobile: mobile },
+                    dataType: 'json',
+                    success: function(res) {
+                        $btn.prop('disabled', false).find('.btn-text').text('GET VERIFICATION OTP');
+                        if (res.success) {
+                            $('#display-target-mobile').text(mobile);
+                            $('#step-phone-input').hide();
+                            $('#step-otp-verify').fadeIn(300);
+                            
+                            // Clear & focus first OTP digit
+                            $otpInputs.val('');
+                            $('#full-otp-value').val('');
+                            $otpInputs.first().focus();
 
-                        runCountdown(30);
-                    } else {
-                        $feedback.html('<div class="custom-alert custom-alert-danger"><span>' + (res.message || 'Failed to dispatch OTP.') + '</span></div>');
+                            runCountdown(30);
+                        } else {
+                            $feedback.html('<div class="custom-alert custom-alert-danger"><span>' + (res.message || 'Failed to dispatch OTP.') + '</span></div>');
+                        }
+                    },
+                    error: function() {
+                        $btn.prop('disabled', false).find('.btn-text').text('GET VERIFICATION OTP');
+                        $feedback.html('<div class="custom-alert custom-alert-danger"><span>Network error. Please check your connection and try again.</span></div>');
                     }
-                },
-                error: function() {
-                    $btn.prop('disabled', false).find('.btn-text').text('GET VERIFICATION OTP');
-                    $feedback.html('<div class="custom-alert custom-alert-danger"><span>Network error. Please check your connection and try again.</span></div>');
-                }
-            });
+                });
+            } else {
+                // Direct Mobile Login without OTP when SMS is disabled
+                $.ajax({
+                    url: '<?= _BASEURL ?>include/auth_api.php',
+                    type: 'POST',
+                    data: { action: 'mobile_direct_login', mobile: mobile },
+                    dataType: 'json',
+                    success: function(res) {
+                        if (res.success) {
+                            $btn.find('.btn-text').text('SUCCESS!');
+                            $feedback.html('<div class="custom-alert custom-alert-success"><svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span>' + res.message + ' Redirecting...</span></div>');
+                            setTimeout(function() {
+                                window.location.href = res.redirect_url || '<?= _BASEURL ?>index.php';
+                            }, 800);
+                        } else {
+                            $btn.prop('disabled', false).find('.btn-text').text('SIGN IN WITH MOBILE');
+                            $feedback.html('<div class="custom-alert custom-alert-danger"><span>' + res.message + '</span></div>');
+                        }
+                    },
+                    error: function() {
+                        $btn.prop('disabled', false).find('.btn-text').text('SIGN IN WITH MOBILE');
+                        $feedback.html('<div class="custom-alert custom-alert-danger"><span>Network error. Please try again.</span></div>');
+                    }
+                });
+            }
         });
 
         // Step 2: Verify OTP

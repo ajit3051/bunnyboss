@@ -8,7 +8,7 @@ if (isset($_GET['order_id'])) {
 
     if ($order_id > 0) {
         $db = connect(); 
-        $stmt = $db->select("SELECT courier_name, COALESCE(NULLIF(courier_awb, ''), delhivery_awb) AS awb FROM tbl_orders WHERE order_id = ? OR id = ?", 'ii', $order_id, $order_id);
+        $stmt = $db->select("SELECT courier_name, COALESCE(NULLIF(courier_awb, ''), delhivery_awb) AS awb FROM tbl_orders WHERE order_id = ?", 'i', $order_id);
         if ($stmt && $row = $stmt->fetch_assoc()) {
             $awb_from_db = $row['awb'] ?? '';
             $courier_from_db = $row['courier_name'] ?? '';
