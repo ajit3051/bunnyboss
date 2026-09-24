@@ -919,10 +919,14 @@ function getHTMLProductList($offset = 0, $limit = 0)
 
 function createDelhiveryShipment($order)
 {
+    if (defined('DELHIVERY_ENABLED') && !DELHIVERY_ENABLED) {
+        return ['success' => false, 'waybill' => null, 'error' => 'Delhivery disabled in config'];
+    }
 
-    $api_token   = DELHIVERY_API_TOKEN;
-    $api_url    = DELHIVERY_CREATE_URL;
-    $pickup_name = PICKUP_LOCATION_NAME;
+    $api_token   = defined('DELHIVERY_API_TOKEN') ? DELHIVERY_API_TOKEN : '';
+    $api_url     = defined('DELHIVERY_CREATE_URL') ? DELHIVERY_CREATE_URL : 'https://track.delhivery.com/api/cmu/create.json';
+    $pickup_name = defined('PICKUP_LOCATION_NAME') ? PICKUP_LOCATION_NAME : (defined('DELHIVERY_PICKUP_NAME') ? DELHIVERY_PICKUP_NAME : (defined('SHADOWFAX_PICKUP_NAME') ? SHADOWFAX_PICKUP_NAME : 'BunnyBoss Warehouse'));
+
 
     $shipment = [
         "name"          => $order['customer_name'],

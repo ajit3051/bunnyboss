@@ -152,15 +152,29 @@ foreach ($_SESSION['checkout_products'] as $item) {
 $is_pure_cod = ($payment_method === 'cod') && (!$enable_cod_online_deposit || !$enable_razorpay);
 
 if ($is_pure_cod) {
-    deduct_order_stock($new_order_id);
+    try {
+        deduct_order_stock($new_order_id);
+    } catch (\Throwable $e) {
+        error_log("Stock deduction error for order {$new_order_id}: " . $e->getMessage());
+    }
+
     if (function_exists('dispatchOrderById')) {
-        $disp_res = dispatchOrderById($new_order_id);
-        if (!$disp_res['success']) {
-            error_log("Shadowfax auto-dispatch failed for order {$new_order_id}: " . json_encode($disp_res));
+        try {
+            $disp_res = dispatchOrderById($new_order_id);
+            if (!$disp_res['success']) {
+                error_log("Courier auto-dispatch failed for order {$new_order_id}: " . json_encode($disp_res));
+            }
+        } catch (\Throwable $e) {
+            error_log("Courier auto-dispatch exception for order {$new_order_id}: " . $e->getMessage());
         }
     }
+
     if (function_exists('send_order_placed_sms_by_id')) {
-        send_order_placed_sms_by_id($new_order_id);
+        try {
+            send_order_placed_sms_by_id($new_order_id);
+        } catch (\Throwable $e) {
+            error_log("Order confirmation SMS exception for order {$new_order_id}: " . $e->getMessage());
+        }
     }
 }
 

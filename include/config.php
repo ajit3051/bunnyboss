@@ -145,6 +145,11 @@ if (!defined('DELHIVERY_PINCODE_URL'))
     define('DELHIVERY_PINCODE_URL', 'https://track.delhivery.com/c/api/pin-codes/json/');
 if (!defined('DELHIVERY_ENABLED'))
     define('DELHIVERY_ENABLED', true);
+if (!defined('PICKUP_LOCATION_NAME'))
+    define('PICKUP_LOCATION_NAME', 'BunnyBoss Warehouse');
+if (!defined('DELHIVERY_PICKUP_NAME'))
+    define('DELHIVERY_PICKUP_NAME', 'BunnyBoss Warehouse');
+
 
 // Shadowfax Courier Integration Config
 if (!defined('SHADOWFAX_API_TOKEN'))
@@ -184,7 +189,7 @@ if (!defined('SHADOWFAX_RTO_STATE'))
 if (!defined('SHADOWFAX_RTO_PINCODE'))
     define('SHADOWFAX_RTO_PINCODE', '110059');
 if (!defined('SHADOWFAX_ENABLED'))
-    define('SHADOWFAX_ENABLED', true);
+    define('SHADOWFAX_ENABLED', false);
 
 // Excluded test product IDs and SKUs (never pushed to Shadowfax)
 if (!defined('SHADOWFAX_TEST_PRODUCT_IDS')) {

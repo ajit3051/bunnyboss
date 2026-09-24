@@ -90,17 +90,31 @@ try {
     );
 
     // Deduct product stock now that payment is confirmed
-    deduct_order_stock($order_id);
+    try {
+        deduct_order_stock($order_id);
+    } catch (\Throwable $e) {
+        error_log("Stock deduction error for order {$order_id}: " . $e->getMessage());
+    }
 
     // --- Fire Courier Shipment now that payment is confirmed ---
-    $disp_res = dispatchOrderById($order_id);
-    if (!$disp_res['success']) {
-        error_log("Courier shipment creation failed for order {$order_id}: " . json_encode($disp_res));
+    if (function_exists('dispatchOrderById')) {
+        try {
+            $disp_res = dispatchOrderById($order_id);
+            if (!$disp_res['success']) {
+                error_log("Courier shipment creation failed for order {$order_id}: " . json_encode($disp_res));
+            }
+        } catch (\Throwable $e) {
+            error_log("Courier shipment exception for order {$order_id}: " . $e->getMessage());
+        }
     }
 
     // --- Fire Order Confirmation SMS ---
     if (function_exists('send_order_placed_sms_by_id')) {
-        send_order_placed_sms_by_id($order_id);
+        try {
+            send_order_placed_sms_by_id($order_id);
+        } catch (\Throwable $e) {
+            error_log("Order SMS exception for order {$order_id}: " . $e->getMessage());
+        }
     }
 
     // Clear user shopping cart contents completely

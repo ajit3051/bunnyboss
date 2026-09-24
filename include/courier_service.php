@@ -121,6 +121,12 @@ function createCourierShipment($order, $courier_name = null)
     }
 
     if ($courier_name === 'shadowfax') {
+        if (!defined('SHADOWFAX_ENABLED') || !SHADOWFAX_ENABLED) {
+            if (defined('DELHIVERY_ENABLED') && DELHIVERY_ENABLED) {
+                return createDelhiveryShipment($order);
+            }
+            return ['success' => false, 'message' => 'Shadowfax courier service is disabled.', 'error' => 'SHADOWFAX_DISABLED'];
+        }
         $sf_res = createShadowfaxShipment($order);
         if (!$sf_res['success'] && defined('DELHIVERY_ENABLED') && DELHIVERY_ENABLED) {
             error_log("Shadowfax creation failed for order " . ($order['order_id'] ?? '') . " (" . ($sf_res['error'] ?? 'Unserviceable pincode') . "). Falling back to Delhivery...");
@@ -234,6 +240,15 @@ function executeShadowfaxCurl($payload, $token = null, $url = null)
  */
 function createShadowfaxShipment($order)
 {
+    if (defined('SHADOWFAX_ENABLED') && !SHADOWFAX_ENABLED) {
+        return [
+            'success'      => false,
+            'courier_name' => 'shadowfax',
+            'error'        => 'Shadowfax is disabled in configuration',
+            'waybill'      => null
+        ];
+    }
+
     // If a full pre-built payload array is passed directly
     if (isset($order['order_details']) && (isset($order['customer_details']) || isset($order['pickup_details']))) {
         return executeShadowfaxCurl($order);
