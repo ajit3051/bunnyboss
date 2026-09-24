@@ -59,7 +59,7 @@
             position: -webkit-sticky !important;
             position: sticky !important;
             top: 0 !important;
-            z-index: 99999 !important;
+            z-index: 1020 !important;
             background-color: whitesmoke !important;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15) !important;
         }
@@ -69,10 +69,36 @@
                 position: -webkit-sticky !important;
                 position: sticky !important;
                 top: 0 !important;
-                z-index: 99999 !important;
+                z-index: 1020 !important;
                 background-color: whitesmoke !important;
                 box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15) !important;
             }
+        }
+
+        /* Ensure modals & backdrops sit on top of sticky/fixed headers & offer marquee */
+        .modal-backdrop {
+            z-index: 105000 !important;
+        }
+
+        .modal {
+            z-index: 105005 !important;
+        }
+
+        .modal-dialog {
+            z-index: 105010 !important;
+        }
+
+        #signin-modal,
+        #location-modal {
+            z-index: 105005 !important;
+        }
+
+        body.modal-open header.header,
+        body.modal-open .desktop-header-wrap,
+        body.modal-open .mobile-header,
+        body.modal-open .offer-marquee,
+        body.modal-open .offer-bar {
+            z-index: 999 !important;
         }
 
         /* Uniform 4-Sided Gap for Product Grid (Left, Right, Top, Bottom equal) */

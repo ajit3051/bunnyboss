@@ -1,4 +1,102 @@
+// =========================================================================
+// Global Indian Mobile Validation & Sanitization Helpers
+// =========================================================================
+window.cleanIndianMobile = function (raw) {
+    if (raw === null || raw === undefined) return '';
+    var val = String(raw).replace(/\D/g, '');
+    // If copied with 0091 international prefix (e.g. 00919876543210 -> 14 digits)
+    if (val.indexOf('0091') === 0 && val.length === 14) {
+        val = val.substring(4);
+    }
+    // If copied with country code 91 (e.g. 919876543210 -> 12 digits starting with 91)
+    else if (val.length === 12 && val.indexOf('91') === 0) {
+        val = val.substring(2);
+    }
+    // If copied with domestic trunk prefix 0 (e.g. 09876543210 -> 11 digits starting with 0)
+    else if (val.length === 11 && val.indexOf('0') === 0) {
+        val = val.substring(1);
+    }
+    // If user starts with 0, strip leading 0
+    else if (val.length > 0 && val.charAt(0) === '0') {
+        val = val.replace(/^0+/, '');
+    }
+    return val.slice(0, 10);
+};
+
+window.validateIndianMobile = function (mobile) {
+    var raw = (mobile || '').toString().trim();
+    if (!raw) {
+        return {
+            valid: false,
+            clean: '',
+            message: 'Please enter your 10-digit mobile number.'
+        };
+    }
+    var clean = window.cleanIndianMobile(raw);
+    if (clean.length === 0) {
+        return {
+            valid: false,
+            clean: '',
+            message: 'Please enter a valid numeric mobile number.'
+        };
+    }
+    if (clean.length < 10) {
+        return {
+            valid: false,
+            clean: clean,
+            message: 'Please enter a complete 10-digit mobile number (' + clean.length + '/10 entered).'
+        };
+    }
+    if (!/^[6-9]/.test(clean)) {
+        return {
+            valid: false,
+            clean: clean,
+            message: 'Mobile number must start with 6, 7, 8, or 9.'
+        };
+    }
+    if (!/^[6-9]\d{9}$/.test(clean)) {
+        return {
+            valid: false,
+            clean: clean,
+            message: 'Please enter a valid 10-digit mobile number.'
+        };
+    }
+    if (/^(\d)\1{9}$/.test(clean)) {
+        return {
+            valid: false,
+            clean: clean,
+            message: 'Please enter a genuine, active mobile number.'
+        };
+    }
+    return {
+        valid: true,
+        clean: clean,
+        message: ''
+    };
+};
+
 $(document).ready(function () {
+    // Global delegated mobile input sanitizer
+    $(document).on('input', 'input[type="tel"], input[name="mobile"], input[name="phone"], .js-mobile-validate', function () {
+        var $input = $(this);
+        if ($input.prop('readonly') || $input.prop('disabled')) return;
+        var raw = $input.val();
+        var cleaned = window.cleanIndianMobile(raw);
+        if (raw !== cleaned && (raw.length > cleaned.length || /\D/.test(raw))) {
+            $input.val(cleaned);
+        }
+    });
+
+    $(document).on('paste', 'input[type="tel"], input[name="mobile"], input[name="phone"], .js-mobile-validate', function () {
+        var $input = $(this);
+        if ($input.prop('readonly') || $input.prop('disabled')) return;
+        setTimeout(function () {
+            var raw = $input.val();
+            $input.val(window.cleanIndianMobile(raw));
+            $input.trigger('input');
+        }, 10);
+    });
+
     $(document).on('click', '.add-cart-btn', function (e) {
         e.preventDefault();
         var btn = $(this);

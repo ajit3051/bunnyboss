@@ -717,7 +717,7 @@ include('include/top.php');
                             <label class="font-weight-bold">Contact Mobile Phone *</label>
                             <div class="input-group">
                                 <div class="input-group-prepend"><span class="input-group-text">+91</span></div>
-                                <input type="tel" class="form-control" name="phone" id="addr_phone" maxlength="10" required placeholder="10-digit phone number">
+                                <input type="tel" class="form-control" name="phone" id="addr_phone" maxlength="16" required placeholder="10-digit phone number">
                             </div>
                         </div>
                         <div class="col-sm-6 d-flex align-items-center pt-3">
@@ -876,12 +876,53 @@ $(document.body).ready(function() {
         });
     });
 
+    // Real-time mobile input formatting and validation for Address Form
+    $('#addr_phone').on('input', function() {
+        var raw = $(this).val();
+        var cleaned = (typeof window.cleanIndianMobile === 'function') ? window.cleanIndianMobile(raw) : raw.replace(/\D/g, '').slice(0, 10);
+        if (raw !== cleaned) {
+            $(this).val(cleaned);
+        }
+        if (cleaned.length === 10) {
+            var check = (typeof window.validateIndianMobile === 'function') ? window.validateIndianMobile(cleaned) : { valid: /^[6-9]\d{9}$/.test(cleaned), message: 'Please enter a valid 10-digit mobile number starting with 6-9.' };
+            if (check.valid) {
+                $(this).removeClass('is-invalid').addClass('is-valid');
+            } else {
+                $(this).removeClass('is-valid').addClass('is-invalid');
+            }
+        } else {
+            $(this).removeClass('is-valid is-invalid');
+        }
+    });
+
+    $('#addr_phone').on('paste', function() {
+        var $this = $(this);
+        setTimeout(function() {
+            var raw = $this.val();
+            var cleaned = (typeof window.cleanIndianMobile === 'function') ? window.cleanIndianMobile(raw) : raw.replace(/\D/g, '').slice(0, 10);
+            $this.val(cleaned).trigger('input');
+        }, 10);
+    });
+
     // Save Address form submit
     $('#address-form').on('submit', function(e) {
         e.preventDefault();
         var $btn = $('#btn-save-address-submit');
         var $alert = $('#address-modal-alert');
+        var $phone = $('#addr_phone');
 
+        var rawPhone = $phone.val();
+        var phoneCheck = (typeof window.validateIndianMobile === 'function')
+            ? window.validateIndianMobile(rawPhone)
+            : { valid: /^[6-9]\d{9}$/.test(rawPhone), clean: rawPhone, message: 'Please enter a valid 10-digit mobile number starting with 6-9.' };
+
+        if (!phoneCheck.valid) {
+            $phone.removeClass('is-valid').addClass('is-invalid').focus();
+            $alert.removeClass('d-none alert-success').addClass('alert-danger').text(phoneCheck.message);
+            return;
+        }
+
+        $phone.val(phoneCheck.clean).removeClass('is-invalid').addClass('is-valid');
         $btn.prop('disabled', true).html('Saving Address...');
         $alert.addClass('d-none').removeClass('alert-success alert-danger');
 

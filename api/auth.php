@@ -53,11 +53,23 @@ if ($action === 'send_otp') {
     $_SESSION['otp_code'] = $otp;
     $_SESSION['otp_expiry'] = $expiry;
 
-    echo json_encode([
+    // Send OTP via configured SMS Gateway
+    $validity_min = defined('API_OTP_EXPIRY_MINUTES') ? (int)API_OTP_EXPIRY_MINUTES : 5;
+    $sms_result = ['success' => true];
+    if (defined('_ENABLE_SMS_') && _ENABLE_SMS_) {
+        $sms_result = send_sms_otp($mobile, $otp, $validity_min);
+    }
+
+    $response_payload = [
         'success' => true,
-        'message' => 'OTP sent successfully to +91-' . $mobile,
-        'debug_otp' => $otp
-    ]);
+        'message' => 'OTP sent successfully to +91-' . $mobile
+    ];
+
+    if (defined('API_OTP_DEBUG') && API_OTP_DEBUG) {
+        $response_payload['debug_otp'] = $otp;
+    }
+
+    echo json_encode($response_payload);
     exit;
 }
 

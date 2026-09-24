@@ -177,7 +177,7 @@ include('include/top.php');
 										<?php endif; ?>
 									</label>
 									<div class="input-group mb-1">
-										<input type="tel" class="form-control" name="phone" id="phone" value="<?= htmlspecialchars($logged_user_mobile) ?>" placeholder="Enter 10-digit mobile number" maxlength="10" required data-verified="<?= $is_phone_verified ? 'true' : 'false' ?>" <?= $is_user_logged_in ? 'readonly' : '' ?>>
+										<input type="tel" class="form-control" name="phone" id="phone" value="<?= htmlspecialchars($logged_user_mobile) ?>" placeholder="Enter 10-digit mobile number" maxlength="16" required data-verified="<?= $is_phone_verified ? 'true' : 'false' ?>" <?= $is_user_logged_in ? 'readonly' : '' ?>>
 										<?php if ($enable_mobile_verification && !$is_user_logged_in): ?>
 											<div class="input-group-append">
 												<button type="button" class="btn btn-outline-primary" id="btn-checkout-send-otp" style="padding: 0.5rem 1rem;">Verify Mobile</button>
@@ -196,9 +196,6 @@ include('include/top.php');
 											<div class="text-center mb-2">
 												<strong class="text-dark"><i class="icon-phone"></i> Mobile Verification Required</strong>
 												<p class="small text-muted mb-0">OTP sent to <strong>+91-<span id="checkout-display-mobile"></span></strong></p>
-											</div>
-											<div id="checkout-debug-otp-alert" class="alert alert-info py-1 px-2 text-center mb-2" style="display: none;">
-												<small><strong>Test OTP:</strong> <span id="checkout-debug-otp-code" class="font-weight-bold" style="font-size: 16px; letter-spacing: 2px;"></span></small>
 											</div>
 											<div class="form-group mb-2">
 												<input type="text" class="form-control text-center font-weight-bold" id="checkout-otp-input" placeholder="Enter 6-digit OTP" maxlength="6" style="font-size: 18px; letter-spacing: 4px;" autocomplete="off">

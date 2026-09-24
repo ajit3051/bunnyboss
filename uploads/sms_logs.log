@@ -1,0 +1,29 @@
+[2026-09-23 21:40:35] [FAILURE] Action: send_sms | Mobile: 99******07 | Status: FAILURE | Response:  | Error: cURL Error: Failed to connect to hindit.co.in port 80 after 60 ms: Couldn't connect to server
+[2026-09-23 21:42:29] [FAILURE] Action: send_sms | Mobile: 99******07 | Status: FAILURE | Response:  | Error: cURL Error: Failed to connect to hindit.co.in port 80 after 1634 ms: Couldn't connect to server
+[2026-09-23 23:12:09] [SUCCESS] Action: send_sms | Mobile: 99******07 | Status: SUCCESS | Response: <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" >
+<head><title>
+	Push SMS - API
+</title></head>
+<body>
+
+    <form name="form1" method="get" action="./pushsms.aspx?loginID=T1BUNNYB&amp;password=bunny1234&amp;mobile=9999441707&amp;text=BunnyBoss%3a+Your+verification+OTP+is+987654.+Valid+for+5+minutes.+Please+do+not+share+this+OTP+with+anyone.&amp;senderid=BUNNYB&amp;route_id=2&amp;Unicode=0&amp;IP=x.x.x.x&amp;Template_id=1777179005799027454" id="form1">
+<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="/wEPDwUJNDAwNzE4ODQ1D2QWAgIDD2QWCgIBDw8WAh4EVGV4dAUhWW91ciBleGlzdGluZyBzbXMgYmFsYW5jZSBpcyA6IDE0ZGQCBQ8PFgIfAAUcVmFsaWQgbW9iaWxlIG51bWJlcnMgYXJlIDogMWRkAgcPDxYCHwAFHE51bWJlciBvZiBtZXNzYWdlcyBhcmUgOiAgIDFkZAIJDw8WAh8ABRpUaGUgbWVzc2FnZXMgaGFzIGJlZW4gc2VudGRkAgsPDxYCHwAFHFlvdXIgY3VycmVudCBiYWxhbmNlIGlzIDogMTNkZGQLQkYv+sAEWDx3Ba6Z53M8RlZxdszY+/98qQmYXPzg8A==" />
+
+<input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="A8BB6748" />
+    <div>
+      <table cellpadding="1" cellspacing ="1" border="0">
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label1">Your existing sms balance is : 14</span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label2"></span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label3">Valid mobile numbers are : 1</span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label4">Number of messages are :   1</span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label5">The messages has been sent</span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label6">Your current balance is : 13</span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label7"></span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label8"></span></td></tr>
+     </table>
+    </div>
+  </form>
+</body>
+</html> | Error: None

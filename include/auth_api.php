@@ -39,14 +39,27 @@ if ($action === 'send_otp') {
     $_SESSION['otp_code'] = $otp;
     $_SESSION['otp_expiry'] = $expiry;
 
-    // Optional hook for SMS provider (e.g., MSG91/Fast2SMS)
-    // send_sms_otp($mobile, $otp);
+    // Send OTP via configured SMS Gateway
+    $validity_min = defined('SMS_OTP_EXPIRY_MINUTES') ? (int)SMS_OTP_EXPIRY_MINUTES : 5;
+    $sms_result = ['success' => true, 'message' => ''];
+    if (defined('_ENABLE_SMS_') && _ENABLE_SMS_) {
+        $sms_result = send_sms_otp($mobile, $otp, $validity_min);
+    }
 
-    echo json_encode([
+    $response_payload = [
         'success' => true,
-        'message' => 'OTP sent successfully to +91-' . $mobile,
-        'debug_otp' => $otp // Returned for easy local testing
-    ]);
+        'message' => 'OTP sent successfully to +91-' . $mobile
+    ];
+
+    // Expose debug_otp only if SMS_DEBUG_MODE is active
+    if (defined('SMS_DEBUG_MODE') && SMS_DEBUG_MODE) {
+        $response_payload['debug_otp'] = $otp;
+        if (!$sms_result['success']) {
+            $response_payload['sms_debug_info'] = $sms_result['message'];
+        }
+    }
+
+    echo json_encode($response_payload);
     exit;
 }
 

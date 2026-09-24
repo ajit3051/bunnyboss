@@ -89,10 +89,10 @@ if (!defined('_SHIPPING_CHARGE_PER_ITEM_')) {
     define("_SHIPPING_CHARGE_PER_ITEM_", "150");
 }
 if (!defined('_ENABLE_MOBILE_VERIFICATION_')) {
-    define("_ENABLE_MOBILE_VERIFICATION_", false);
+    define("_ENABLE_MOBILE_VERIFICATION_", true);
 }
 if (!defined('_ENABLE_COD_')) {
-    define("_ENABLE_COD_", false);
+    define("_ENABLE_COD_", true);
 }
 // COD Upfront Online Deposit Setting (Set to true to require upfront shipping/GST payment via Razorpay for COD, or false for 100% Pure COD)
 if (!defined('_ENABLE_COD_ONLINE_DEPOSIT_')) {
@@ -205,3 +205,5 @@ include_once(__DIR__ . "/ajax_functions.php");
 include_once(__DIR__ . "/send_mail.php");
 require_once(__DIR__ . "/razorpay_config.php");
 require_once(__DIR__ . "/courier_service.php");
+require_once(__DIR__ . "/sms_config.php");
+require_once(__DIR__ . "/sms_service.php");

@@ -24,13 +24,20 @@ $(function () {
     // Send OTP button click
     $(document).on('click', '#btn-checkout-send-otp, #btn-checkout-resend-otp', function (e) {
         e.preventDefault();
-        var mobile = $('#phone').val().trim();
         var $phoneField = $('#phone');
+        var rawMobile = $phoneField.val();
+        var check = (typeof window.validateIndianMobile === 'function') 
+            ? window.validateIndianMobile(rawMobile)
+            : { valid: /^[6-9]\d{9}$/.test(rawMobile.replace(/\D/g, '')), clean: rawMobile.replace(/\D/g, '').slice(0, 10), message: 'Please enter a valid 10-digit mobile number starting with 6-9.' };
 
-        if (!/^[6-9]\d{9}$/.test(mobile)) {
-            showFieldError($phoneField, 'Please enter a valid 10-digit mobile number starting with 6-9.');
+        if (!check.valid) {
+            showFieldError($phoneField, check.message);
+            $phoneField.focus();
             return;
         }
+
+        var mobile = check.clean;
+        $phoneField.val(mobile);
         clearFieldError($phoneField);
 
         var $btn = $('#btn-checkout-send-otp');
@@ -45,12 +52,6 @@ $(function () {
                 $btn.prop('disabled', false).text('Verify Mobile');
                 if (res.success) {
                     $('#checkout-display-mobile').text(mobile);
-                    if (res.debug_otp) {
-                        $('#checkout-debug-otp-code').text(res.debug_otp);
-                        $('#checkout-debug-otp-alert').show();
-                    } else {
-                        $('#checkout-debug-otp-alert').hide();
-                    }
                     $('#checkout-otp-wrapper').slideDown();
                     $('#checkout-otp-input').val('').focus();
                     $('#checkout-otp-msg').html('');
@@ -110,8 +111,46 @@ $(function () {
     });
 
     $('#phone').on('input', function () {
+        if ($(this).prop('readonly')) return;
+        var raw = $(this).val();
+        var cleaned = (typeof window.cleanIndianMobile === 'function') ? window.cleanIndianMobile(raw) : raw.replace(/\D/g, '').slice(0, 10);
+        if (raw !== cleaned) {
+            $(this).val(cleaned);
+        }
         if ($(this).attr('data-verified') !== 'true') {
             $('#phone-verified-badge').hide();
+        }
+        if (cleaned.length === 10) {
+            var check = (typeof window.validateIndianMobile === 'function') ? window.validateIndianMobile(cleaned) : { valid: /^[6-9]\d{9}$/.test(cleaned), message: 'Please enter a valid 10-digit mobile number starting with 6-9.' };
+            if (check.valid) {
+                clearFieldError($(this));
+                $(this).addClass('is-valid');
+            } else {
+                $(this).removeClass('is-valid');
+                showFieldError($(this), check.message);
+            }
+        } else {
+            $(this).removeClass('is-valid');
+            if (cleaned.length === 0) {
+                clearFieldError($(this));
+            }
+        }
+    });
+
+    $('#phone').on('paste', function () {
+        var $this = $(this);
+        if ($this.prop('readonly')) return;
+        setTimeout(function () {
+            var raw = $this.val();
+            var cleaned = (typeof window.cleanIndianMobile === 'function') ? window.cleanIndianMobile(raw) : raw.replace(/\D/g, '').slice(0, 10);
+            $this.val(cleaned).trigger('input');
+        }, 10);
+    });
+
+    $('#phone').on('blur', function () {
+        var val = $(this).val().trim();
+        if (val.length > 0 && val.length < 10) {
+            showFieldError($(this), 'Please enter complete 10-digit mobile number (' + val.length + '/10 entered).');
         }
     });
 
@@ -177,16 +216,23 @@ $(function () {
 
         var $phone = $('#phone');
         clearFieldError($phone);
-        var phoneVal = $phone.val().trim();
-        if (!/^[6-9][0-9]{9}$/.test(phoneVal)) {
-            showFieldError($phone, 'Valid 10-digit phone number is required.');
+        var rawPhone = $phone.val().trim();
+        var phoneCheck = (typeof window.validateIndianMobile === 'function')
+            ? window.validateIndianMobile(rawPhone)
+            : { valid: /^[6-9]\d{9}$/.test(rawPhone), clean: rawPhone, message: 'Valid 10-digit phone number is required.' };
+
+        if (!phoneCheck.valid) {
+            showFieldError($phone, phoneCheck.message);
             isValid = false;
-        } else if (window.ENABLE_MOBILE_VERIFICATION !== false && $phone.attr('data-verified') !== 'true') {
-            showFieldError($phone, 'Please click "Verify Mobile" to verify your phone number via OTP.');
-            if ($('#checkout-otp-wrapper').is(':hidden')) {
-                $('#btn-checkout-send-otp').trigger('click');
+        } else {
+            $phone.val(phoneCheck.clean);
+            if (window.ENABLE_MOBILE_VERIFICATION !== false && $phone.attr('data-verified') !== 'true') {
+                showFieldError($phone, 'Please click "Verify Mobile" to verify your phone number via OTP.');
+                if ($('#checkout-otp-wrapper').is(':hidden')) {
+                    $('#btn-checkout-send-otp').trigger('click');
+                }
+                isValid = false;
             }
-            isValid = false;
         }
 
         var $payment_method = $('#payment_method');

@@ -30,7 +30,7 @@
             left: 0 !important;
             right: 0 !important;
             width: 100% !important;
-            z-index: 1050 !important;
+            z-index: 1020 !important;
             margin: 0 !important;
             padding: 0 !important;
             background-color: whitesmoke !important;
@@ -128,7 +128,7 @@
             left: 0 !important;
             right: 0 !important;
             width: 100% !important;
-            z-index: 1050 !important;
+            z-index: 1020 !important;
             margin: 0 !important;
             padding: 0 !important;
             background-color: whitesmoke !important;
@@ -142,8 +142,19 @@
         z-index: 2000 !important;
     }
 
-    #signin-modal {
-        z-index: 2050 !important;
+    /* Modals & Popups must always sit above headers, offer-marquee, and backdrops */
+    .modal-backdrop {
+        z-index: 105000 !important;
+    }
+
+    .modal,
+    #signin-modal,
+    #location-modal {
+        z-index: 105005 !important;
+    }
+
+    .modal-dialog {
+        z-index: 105010 !important;
     }
 
     /* Category Menu Bar */
@@ -792,7 +803,7 @@ $current_loc = function_exists('getCurrentDeliveryLocation')
     </div>
 
 </div>
-<div class="offer-marquee" style="height:42px;">
+<div class="offer-marquee">
     <div class="offer-track">
         <span class="breaking">⚡Hurry Up!</span>
         <span><span class="fire" style="margin-right:5px;">🔥</span>Flat 50% OFF on Shoes</span>
@@ -844,13 +855,26 @@ $current_loc = function_exists('getCurrentDeliveryLocation')
     }
 
     .offer-marquee {
+        position: relative;
+        z-index: 990;
         width: 100%;
         background: #232f3e;
         color: #fff;
         overflow: hidden;
         white-space: nowrap;
-        padding: 8px 0;
-        height: 30px;
+        height: 38px;
+        display: flex;
+        align-items: center;
+        margin: 0;
+        padding: 0;
+    }
+
+    body.modal-open .offer-marquee,
+    body.modal-open .offer-track,
+    body.modal-open .offer-bar {
+        z-index: 1 !important;
+        opacity: 0.3 !important;
+        pointer-events: none !important;
     }
 
     /* Pause on hover */
