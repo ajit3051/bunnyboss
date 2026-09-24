@@ -27,3 +27,7 @@
   </form>
 </body>
 </html> | Error: None
+[2026-09-24 23:22:58] [SUCCESS] Action: send_sms_disabled | Mobile: 98******10 | Status: SUCCESS | Response: SMS dispatch disabled in config | Error: None
+[2026-09-24 23:23:44] [SUCCESS] Action: send_sms_disabled | Mobile: 98******10 | Status: SUCCESS | Response: SMS dispatch disabled in config | Error: None
+[2026-09-24 23:27:24] [SUCCESS] Action: send_sms_disabled | Mobile: 70******02 | Status: SUCCESS | Response: SMS dispatch disabled in config | Error: None
+[2026-09-24 23:55:47] [SUCCESS] Action: send_sms_disabled | Mobile: 98******10 | Status: SUCCESS | Response: SMS dispatch disabled in config | Error: None

@@ -236,8 +236,10 @@ function send_order_placed_sms_by_id($order_id)
         // Send SMS
         $res = send_sms_order_placed($phone, $name, $order_id);
 
-        // Mark as sent in database
-        $db->update("UPDATE tbl_orders SET is_order_sms_sent = 1 WHERE order_id = ?", 'i', $order_id);
+        // Mark as sent in database if successfully dispatched via gateway
+        if (!empty($res['success']) && ($res['response'] ?? '') !== 'SMS_DISABLED_SIMULATED') {
+            $db->update("UPDATE tbl_orders SET is_order_sms_sent = 1 WHERE order_id = ?", 'i', $order_id);
+        }
 
         return $res;
     } catch (\Throwable $e) {

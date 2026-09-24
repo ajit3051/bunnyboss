@@ -8,7 +8,7 @@
 
 // Master toggle to enable or disable SMS dispatch
 if (!defined('_ENABLE_SMS_')) {
-    define('_ENABLE_SMS_', false);
+    define('_ENABLE_SMS_', true);
 }
 
 // SMS Gateway Endpoint URL
