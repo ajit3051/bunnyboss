@@ -351,22 +351,26 @@ function send_sms_message($mobile, $message_text, $template_id = null, $custom_s
     }
 
     // Evaluate gateway response
-    // Typical Hindit SMS success responses contain transaction IDs, 'STATUS: OK', 'SENT', or HTTP 200 without error words
     $trimmed_resp = trim((string)$response);
-    $is_err = preg_match('/error|fail|invalid|denied|err:/i', $trimmed_resp);
+    $has_sent = preg_match('/messages?\s+has\s+been\s+sent/i', $trimmed_resp);
+    $is_err = preg_match('/error|fail|invalid|denied|err:|insufficient|balance\s*:\s*0/i', $trimmed_resp);
 
-    if ($trimmed_resp !== '' && !$is_err) {
+    if ($trimmed_resp !== '' && stripos($trimmed_resp, 'insufficient balance') !== false) {
+        $is_success = false;
+        $status_msg = 'SMS Gateway Error: Insufficient SMS credits/balance on account.';
+        $error_msg  = 'INSUFFICIENT_SMS_BALANCE';
+    } elseif ($has_sent || ($trimmed_resp !== '' && !$is_err)) {
         $is_success = true;
         $status_msg = 'SMS dispatched successfully.';
     } elseif ($trimmed_resp !== '' && $is_err) {
         $is_success = false;
-        $status_msg = 'SMS Gateway reported: ' . $trimmed_resp;
-        $error_msg = $trimmed_resp;
+        $status_msg = 'SMS Gateway reported error: ' . strip_tags($trimmed_resp);
+        $error_msg  = strip_tags($trimmed_resp);
     } else {
         // Empty response
         $is_success = false;
         $status_msg = 'Empty response from SMS Gateway.';
-        $error_msg = 'EMPTY_RESPONSE';
+        $error_msg  = 'EMPTY_RESPONSE';
     }
 
     log_sms_activity('send_sms', ['mobile' => $mobile, 'text' => $message_text], $is_success, $trimmed_resp, $error_msg);
