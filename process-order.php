@@ -159,6 +159,9 @@ if ($is_pure_cod) {
             error_log("Shadowfax auto-dispatch failed for order {$new_order_id}: " . json_encode($disp_res));
         }
     }
+    if (function_exists('send_order_placed_sms_by_id')) {
+        send_order_placed_sms_by_id($new_order_id);
+    }
 }
 
 // Pass order_id back to Javascript

@@ -135,6 +135,9 @@ if ($action === 'process_order') {
         if (function_exists('dispatchOrderById')) {
             dispatchOrderById($new_order_id);
         }
+        if (function_exists('send_order_placed_sms_by_id')) {
+            send_order_placed_sms_by_id($new_order_id);
+        }
     }
 
     echo json_encode(['success' => true, 'message' => 'Order created successfully.', 'order_id' => $new_order_id]);

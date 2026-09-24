@@ -57,6 +57,18 @@ if (!defined('SMS_TEMPLATE_TEXT')) {
     define('SMS_TEMPLATE_TEXT', 'BunnyBoss: Your verification OTP is {#alp#}. Valid for {#num#} minutes. Please do not share this OTP with anyone.');
 }
 
+// DLT Approved Template ID for Order Placed
+if (!defined('SMS_ORDER_TEMPLATE_ID')) {
+    define('SMS_ORDER_TEMPLATE_ID', '1777179005799027454');
+}
+
+// DLT Approved Template Message Text for Order Placed
+// Note: First {#alp#} is customer name, second {#alp#} is order ID (e.g. #2466)
+if (!defined('SMS_ORDER_TEMPLATE_TEXT')) {
+    define('SMS_ORDER_TEMPLATE_TEXT', 'Hi {#alp#}, your order {#alp#} has been successfully placed with BunnyBoss.');
+}
+
+
 // OTP Settings
 if (!defined('SMS_OTP_LENGTH')) {
     define('SMS_OTP_LENGTH', 6);

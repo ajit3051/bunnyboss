@@ -98,6 +98,11 @@ try {
         error_log("Courier shipment creation failed for order {$order_id}: " . json_encode($disp_res));
     }
 
+    // --- Fire Order Confirmation SMS ---
+    if (function_exists('send_order_placed_sms_by_id')) {
+        send_order_placed_sms_by_id($order_id);
+    }
+
     // Clear user shopping cart contents completely
     $cart_session = get_cart_session();
     $db->delete("DELETE FROM tbl_cart_items WHERE cart_session = ?", 's', $cart_session);

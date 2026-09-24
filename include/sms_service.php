@@ -56,11 +56,19 @@ function log_sms_activity($action, array $payload, $success, $response = null, $
  */
 function get_sms_template($template_key = 'login_otp')
 {
+    $default_id = ($template_key === 'order_placed' && defined('SMS_ORDER_TEMPLATE_ID'))
+        ? SMS_ORDER_TEMPLATE_ID
+        : (defined('SMS_TEMPLATE_ID') ? SMS_TEMPLATE_ID : '1777179005799027454');
+
+    $default_text = ($template_key === 'order_placed' && defined('SMS_ORDER_TEMPLATE_TEXT'))
+        ? SMS_ORDER_TEMPLATE_TEXT
+        : (defined('SMS_TEMPLATE_TEXT') ? SMS_TEMPLATE_TEXT : 'BunnyBoss: Your verification OTP is {#alp#}. Valid for {#num#} minutes. Please do not share this OTP with anyone.');
+
     $default_template = [
         'template_key'  => $template_key,
-        'template_id'   => defined('SMS_TEMPLATE_ID') ? SMS_TEMPLATE_ID : '1777179005799027454',
+        'template_id'   => $default_id,
         'sender_id'     => defined('SMS_SENDER_ID') ? SMS_SENDER_ID : 'BUNNYB',
-        'template_text' => defined('SMS_TEMPLATE_TEXT') ? SMS_TEMPLATE_TEXT : 'BunnyBoss: Your verification OTP is {#alp#}. Valid for {#num#} minutes. Please do not share this OTP with anyone.'
+        'template_text' => $default_text
     ];
 
     try {
@@ -127,6 +135,117 @@ function send_sms_otp($mobile, $otp, $validity_minutes = null)
 
     return send_sms_message($clean_mobile, $message_text, $template_id, $tmpl_data['sender_id']);
 }
+
+/**
+ * Send an Order Placed confirmation SMS to the customer.
+ * Template: "Hi {#alp#}, your order {#alp#} has been successfully placed with BunnyBoss."
+ *
+ * @param string $mobile Recipient 10-digit mobile number
+ * @param string $customer_name Customer name (first name or full name)
+ * @param string|int $order_id Order reference number
+ * @return array ['success' => bool, 'message' => string, 'response' => string, 'error' => string|null]
+ */
+function send_sms_order_placed($mobile, $customer_name, $order_id)
+{
+    // Sanitize mobile number
+    $clean_mobile = preg_replace('/[^0-9]/', '', (string)$mobile);
+    if (strlen($clean_mobile) > 10) {
+        $clean_mobile = substr($clean_mobile, -10);
+    }
+
+    if (strlen($clean_mobile) !== 10 || !preg_match('/^[6-9]\d{9}$/', $clean_mobile)) {
+        return [
+            'success' => false,
+            'message' => 'Invalid mobile number. Must be a 10-digit Indian mobile number.',
+            'response' => '',
+            'error'   => 'INVALID_MOBILE'
+        ];
+    }
+
+    // Clean name - if blank, fallback to 'Customer'
+    $name = trim(preg_replace('/[^a-zA-Z0-9\s]/', '', (string)$customer_name));
+    if ($name === '') {
+        $name = 'Customer';
+    }
+
+    // Format order ID (e.g. #2466)
+    $clean_order = trim((string)$order_id);
+    if ($clean_order === '') {
+        $clean_order = 'N/A';
+    }
+    $order_val = (strpos($clean_order, '#') === 0) ? $clean_order : '#' . $clean_order;
+
+    // Fetch template from database or fallback to config
+    $tmpl_data = get_sms_template('order_placed');
+    $template = $tmpl_data['template_text'];
+    $template_id = $tmpl_data['template_id'];
+
+    // Replace the two {#alp#} placeholders sequentially
+    // First {#alp#} => customer name
+    // Second {#alp#} => order id
+    $message_text = $template;
+    $pos1 = strpos($message_text, '{#alp#}');
+    if ($pos1 !== false) {
+        $message_text = substr_replace($message_text, $name, $pos1, strlen('{#alp#}'));
+    }
+    $pos2 = strpos($message_text, '{#alp#}');
+    if ($pos2 !== false) {
+        $message_text = substr_replace($message_text, $order_val, $pos2, strlen('{#alp#}'));
+    }
+
+    return send_sms_message($clean_mobile, $message_text, $template_id, $tmpl_data['sender_id']);
+}
+
+/**
+ * Dispatch Order Placed SMS directly by Order ID.
+ * Loads customer phone and name from tbl_orders and guards against duplicate dispatch.
+ *
+ * @param int $order_id
+ * @return array
+ */
+function send_order_placed_sms_by_id($order_id)
+{
+    $order_id = (int)$order_id;
+    if ($order_id <= 0) {
+        return ['success' => false, 'message' => 'Invalid order ID.', 'error' => 'INVALID_ORDER_ID'];
+    }
+
+    try {
+        $db = function_exists('connect') ? connect() : null;
+        if (!$db) {
+            return ['success' => false, 'message' => 'Database connection failed.', 'error' => 'DB_CONN_FAILED'];
+        }
+
+        // Fetch order details
+        $stmt = $db->select("SELECT order_id, first_name, last_name, phone, is_order_sms_sent FROM tbl_orders WHERE order_id = ? LIMIT 1", 'i', $order_id);
+        if (!$stmt || !($order = $stmt->fetch_assoc())) {
+            return ['success' => false, 'message' => 'Order not found.', 'error' => 'ORDER_NOT_FOUND'];
+        }
+
+        // Check if already sent
+        if (!empty($order['is_order_sms_sent'])) {
+            return ['success' => true, 'message' => 'Order SMS already sent.', 'response' => 'ALREADY_SENT', 'error' => null];
+        }
+
+        $phone = $order['phone'] ?? '';
+        $name = trim(($order['first_name'] ?? '') . ' ' . ($order['last_name'] ?? ''));
+        if (empty($name)) {
+            $name = $order['first_name'] ?? '';
+        }
+
+        // Send SMS
+        $res = send_sms_order_placed($phone, $name, $order_id);
+
+        // Mark as sent in database
+        $db->update("UPDATE tbl_orders SET is_order_sms_sent = 1 WHERE order_id = ?", 'i', $order_id);
+
+        return $res;
+    } catch (\Throwable $e) {
+        error_log("Failed to dispatch order placed SMS for order {$order_id}: " . $e->getMessage());
+        return ['success' => false, 'message' => $e->getMessage(), 'error' => 'EXCEPTION'];
+    }
+}
+
 
 /**
  * Dispatch an SMS via Hindit Push SMS Gateway HTTP API
