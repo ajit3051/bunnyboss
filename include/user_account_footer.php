@@ -140,6 +140,62 @@ if ($is_logged_in): ?>
     </div>
 </div>
 
+<!-- ========================================================================= -->
+<!-- CANCEL ORDER CONFIRMATION MODAL -->
+<!-- ========================================================================= -->
+<div class="modal fade" id="cancelOrderModal" tabindex="-1" role="dialog" aria-labelledby="cancelOrderModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document" style="max-width: 480px;">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; overflow: hidden;">
+            <div class="modal-header bg-danger text-white" style="padding: 16px 20px;">
+                <h5 class="modal-title text-white font-weight-bold" id="cancelOrderModalLabel" style="font-size: 16px;">
+                    <i class="icon-warning-sign mr-2"></i> Cancel Order #<span id="cancel-modal-order-id"></span>
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close" style="opacity: 0.9;">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="cancel-order-form">
+                <input type="hidden" name="order_id" id="cancel_order_id_input" value="">
+                <div class="modal-body p-4">
+                    <div id="cancel-modal-alert" class="alert d-none py-2 px-3 mb-3" style="font-size: 13px;"></div>
+
+                    <p class="text-dark font-weight-bold mb-1" style="font-size: 15px;">Are you sure you want to cancel this order?</p>
+                    <p class="text-muted small mb-3">Once cancelled, reserved inventory for this order will be released.</p>
+
+                    <div id="cancel-modal-refund-notice" class="alert alert-info py-2 px-3 mb-3 d-none" style="font-size: 12px; background: #e0f2fe; border-color: #bae6fd; color: #0369a1;">
+                        <i class="icon-info-circle mr-1"></i> <span id="cancel-refund-text"></span>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label class="font-weight-bold small text-dark mb-1">Reason for cancellation <span class="text-danger">*</span></label>
+                        <select name="reason" id="cancel_reason_select" class="form-control form-control-sm" required style="border-radius: 8px;">
+                            <option value="">-- Select a Reason --</option>
+                            <option value="Ordered by mistake / wrong size">Ordered by mistake / wrong size</option>
+                            <option value="Found a better price / product elsewhere">Found a better price / product elsewhere</option>
+                            <option value="Expected delivery time is too long">Expected delivery time is too long</option>
+                            <option value="Need to change shipping address or phone">Need to change shipping address or phone</option>
+                            <option value="Payment or financial reason">Payment or financial reason</option>
+                            <option value="Changed my mind / Don't need it anymore">Changed my mind / Don't need it anymore</option>
+                            <option value="Other reason">Other reason</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group mb-0">
+                        <label class="font-weight-bold small text-dark mb-1">Additional Comments (Optional)</label>
+                        <textarea name="comments" id="cancel_comments_input" class="form-control form-control-sm" rows="2" placeholder="Tell us more about your cancellation..." style="border-radius: 8px;"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light" style="padding: 12px 20px; border-top: 1px solid #eef2f5;">
+                    <button type="button" class="btn btn-secondary btn-sm px-3" data-dismiss="modal" style="border-radius: 20px;">Keep Order</button>
+                    <button type="submit" class="btn btn-danger btn-sm px-4" id="btn-submit-cancel" style="border-radius: 20px; font-weight: 600;">
+                        <i class="icon-trash mr-1"></i> Confirm Cancellation
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
 $(document.body).ready(function() {
 
@@ -362,8 +418,9 @@ $(document.body).ready(function() {
 
                     var stepperHtml = '';
                     if (isCancelled) {
-                        stepperHtml = '<div class="alert alert-danger py-2 px-3 mb-4 text-center rounded" style="font-size: 13px;">' +
-                                          '<i class="icon-close mr-1"></i> This order was cancelled.' +
+                        stepperHtml = '<div class="alert alert-danger py-2 px-3 mb-4 rounded" style="font-size: 13px;">' +
+                                          '<div class="font-weight-bold"><i class="icon-close mr-1"></i> This order was cancelled.</div>' +
+                                          (ord.cancel_reason ? '<div class="small mt-1 text-danger font-italic">Reason: ' + escapeHtml(ord.cancel_reason) + (ord.cancelled_at ? ' &bull; on ' + escapeHtml(ord.cancelled_at) : '') + '</div>' : '') +
                                       '</div>';
                     } else {
                         stepperHtml = '<div class="order-stepper">' +
@@ -522,11 +579,18 @@ $(document.body).ready(function() {
 
                     financeHtml += '</div></div></div>';
 
+                    // Check if order is eligible for cancellation by user
+                    var canCancel = (!isCancelled && !isDelivered && !isDispatched && (ordStatus === 'pending' || ordStatus === 'placed' || ordStatus === 'processing' || ordStatus === 'success'));
+                    var cancelBtnHtml = canCancel ? '<button type="button" class="btn btn-outline-danger btn-sm px-3 btn-cancel-order ml-2" data-order-id="' + ord.order_id + '" data-pay-status="' + payStatus + '" data-paid-amt="' + (ord.paid_amount || 0) + '" style="border-radius: 20px; font-weight: 600;"><i class="icon-close mr-1"></i> Cancel Order</button>' : '';
+
                     // Modal action buttons in footer
-                    var modalFooterHtml = '<div class="d-flex justify-content-between align-items-center w-100">' +
-                                              '<button type="button" class="btn btn-outline-dark btn-sm px-3" onclick="window.print()" style="border-radius: 20px; font-weight: 600;">' +
-                                                  '<i class="icon-print mr-1"></i> Print Invoice' +
-                                              '</button>' +
+                    var modalFooterHtml = '<div class="d-flex justify-content-between align-items-center w-100 flex-wrap gap-2">' +
+                                              '<div>' +
+                                                  '<button type="button" class="btn btn-outline-dark btn-sm px-3" onclick="window.print()" style="border-radius: 20px; font-weight: 600;">' +
+                                                      '<i class="icon-print mr-1"></i> Print Invoice' +
+                                                  '</button>' +
+                                                  cancelBtnHtml +
+                                              '</div>' +
                                               '<div class="d-flex gap-2" style="gap: 8px;">' +
                                                   (awb ? '<button type="button" class="btn btn-primary btn-sm px-3 btn-track-order" data-order-id="' + ord.order_id + '" style="background-color: #19978c; border-color: #19978c; border-radius: 20px; font-weight: 600;"><i class="icon-truck mr-1"></i> Track Shipment</button>' : '') +
                                                   '<button type="button" class="btn btn-secondary btn-sm px-3" data-dismiss="modal" style="border-radius: 20px;">Close</button>' +
@@ -621,6 +685,103 @@ $(document.body).ready(function() {
         if (!text) return '';
         return String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     }
+
+    // -------------------------------------------------------------
+    // CANCEL ORDER MODAL OPEN TRIGGER
+    // -------------------------------------------------------------
+    $(document).on('click', '.btn-cancel-order', function(e) {
+        e.preventDefault();
+        var orderId = $(this).data('order-id');
+        var payStatus = ($(this).data('pay-status') || '').toString().toLowerCase();
+        var paidAmt = parseFloat($(this).data('paid-amt') || 0);
+
+        if (!orderId) return;
+
+        $('#cancel_order_id_input').val(orderId);
+        $('#cancel-modal-order-id').text(orderId);
+        $('#cancel_reason_select').val('');
+        $('#cancel_comments_input').val('');
+        $('#cancel-modal-alert').addClass('d-none').removeClass('alert-success alert-danger').text('');
+
+        if ((payStatus === 'paid' || payStatus === 'partial_paid') && paidAmt > 0) {
+            $('#cancel-refund-text').html('An online/advance payment of <strong>₹' + paidAmt.toFixed(2) + '</strong> was received for this order. Upon cancellation, your refund will be automatically initiated to your source account within 5-7 business days.');
+            $('#cancel-modal-refund-notice').removeClass('d-none');
+        } else {
+            $('#cancel-modal-refund-notice').addClass('d-none');
+        }
+
+        $('#cancelOrderModal').modal('show');
+    });
+
+    // -------------------------------------------------------------
+    // CANCEL ORDER FORM SUBMIT (AJAX)
+    // -------------------------------------------------------------
+    $('#cancel-order-form').on('submit', function(e) {
+        e.preventDefault();
+        var $btn = $('#btn-submit-cancel');
+        var $alert = $('#cancel-modal-alert');
+        var orderId = $('#cancel_order_id_input').val();
+        var reason = $('#cancel_reason_select').val();
+        var comments = $('#cancel_comments_input').val();
+
+        if (!orderId || !reason) {
+            $alert.removeClass('d-none alert-success').addClass('alert-danger').text('Please choose a reason for cancellation.');
+            return;
+        }
+
+        $btn.prop('disabled', true).html('<i class="icon-refresh icon-spin mr-1"></i> Cancelling...');
+        $alert.addClass('d-none').removeClass('alert-success alert-danger');
+
+        $.ajax({
+            url: 'user-api.php',
+            type: 'POST',
+            data: {
+                action: 'cancel_order',
+                order_id: orderId,
+                reason: reason,
+                comments: comments
+            },
+            dataType: 'json',
+            success: function(res) {
+                $btn.prop('disabled', false).html('<i class="icon-trash mr-1"></i> Confirm Cancellation');
+                if (res.success) {
+                    $alert.removeClass('d-none alert-danger').addClass('alert-success').text(res.message || 'Order cancelled successfully.');
+
+                    setTimeout(function() {
+                        $('#cancelOrderModal').modal('hide');
+
+                        // 1. Update matching order cards on page
+                        var $card = $('.order-card-box').filter(function() {
+                            return $(this).find('.btn-view-order').data('order-id') == orderId ||
+                                   $(this).find('.btn-cancel-order').data('order-id') == orderId ||
+                                   $(this).find('.order-id-title').text().indexOf('#' + orderId) !== -1;
+                        });
+
+                        if ($card.length) {
+                            $card.find('.order-badge[class*="badge-status-"]')
+                                 .attr('class', 'order-badge badge-status-cancelled')
+                                 .text('CANCELLED');
+                            
+                            $card.find('.btn-cancel-order').remove();
+                            $card.attr('data-cancelled', 'true');
+                            $card.attr('data-in-progress', 'false');
+                        }
+
+                        // 2. If details modal is open for this order, refresh its view
+                        if ($('#orderDetailsModal').hasClass('show') && $('#modal-order-id').text().indexOf(orderId) !== -1) {
+                            $('.btn-view-order[data-order-id="' + orderId + '"]').first().trigger('click');
+                        }
+                    }, 1200);
+                } else {
+                    $alert.removeClass('d-none alert-success').addClass('alert-danger').text(res.message || 'Failed to cancel order.');
+                }
+            },
+            error: function() {
+                $btn.prop('disabled', false).html('<i class="icon-trash mr-1"></i> Confirm Cancellation');
+                $alert.removeClass('d-none alert-success').addClass('alert-danger').text('Network error occurred. Please try again.');
+            }
+        });
+    });
 
 });
 </script>

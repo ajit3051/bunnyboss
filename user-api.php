@@ -280,5 +280,106 @@ if ($action === 'get_order_details') {
     exit;
 }
 
+// ---------------------------------------------------------
+// 8. CANCEL ORDER (BY USER)
+// ---------------------------------------------------------
+if ($action === 'cancel_order') {
+    $order_id = (int)($_POST['order_id'] ?? 0);
+    $reason   = trim($_POST['reason'] ?? '');
+    $comments = trim($_POST['comments'] ?? '');
+
+    if ($order_id <= 0) {
+        echo json_encode(['success' => false, 'message' => 'Invalid order ID.']);
+        exit;
+    }
+
+    if (empty($reason)) {
+        echo json_encode(['success' => false, 'message' => 'Please select a reason for cancellation.']);
+        exit;
+    }
+
+    // Verify order exists and belongs to current user
+    $ord_stmt = $db->select(
+        "SELECT * FROM tbl_orders WHERE order_id = ? AND (user_id = ? OR phone = ?)",
+        'iis',
+        $order_id,
+        $user_id,
+        $user_mobile
+    );
+
+    if (!$ord_stmt || $ord_stmt->num_rows === 0) {
+        echo json_encode(['success' => false, 'message' => 'Order not found or unauthorized.']);
+        exit;
+    }
+
+    $order = $ord_stmt->fetch_assoc();
+    $current_status = strtolower(trim($order['order_status'] ?? 'pending'));
+
+    // Check if already cancelled
+    if ($current_status === 'cancelled') {
+        echo json_encode(['success' => false, 'message' => 'This order has already been cancelled.']);
+        exit;
+    }
+
+    // Check non-cancellable statuses (delivered, completed, rto, returned)
+    if (in_array($current_status, ['delivered', 'completed', 'rto', 'returned'])) {
+        echo json_encode(['success' => false, 'message' => 'Delivered orders cannot be cancelled online. Please contact customer care.']);
+        exit;
+    }
+
+    // Check if physically dispatched with courier partner
+    $dispatch_status = strtolower(trim($order['dispatch_status'] ?? ''));
+    if (in_array($current_status, ['shipped', 'dispatched']) || in_array($dispatch_status, ['shipped', 'dispatched', 'in_transit', 'out_for_delivery'])) {
+        echo json_encode(['success' => false, 'message' => 'This order has already been dispatched with the courier partner and cannot be cancelled online. You may decline delivery at doorstep or contact customer support.']);
+        exit;
+    }
+
+    // Construct full cancellation reason string
+    $full_reason = $reason;
+    if (!empty($comments)) {
+        $full_reason .= ' - ' . $comments;
+    }
+
+    // 1. Restore stock if previously deducted
+    if (function_exists('restore_order_stock')) {
+        restore_order_stock($order_id);
+    }
+
+    // 2. Update order status to 'cancelled'
+    $updated = $db->update(
+        "UPDATE tbl_orders 
+         SET order_status = 'cancelled', 
+             cancel_reason = ?, 
+             cancelled_at = NOW(), 
+             cancelled_by = 'user',
+             dispatch_status = 'cancelled'
+         WHERE order_id = ?",
+        'si',
+        $full_reason,
+        $order_id
+    );
+
+    if ($updated !== false) {
+        $refund_note = '';
+        $pay_status = strtolower(trim($order['payment_status'] ?? ''));
+        $paid_amt = (float)($order['paid_amount'] ?? 0);
+        if (($pay_status === 'paid' || $pay_status === 'partial_paid') && $paid_amt > 0) {
+            $refund_note = " A refund of ₹" . number_format($paid_amt, 2) . " will be processed to your source account within 5-7 working days.";
+        }
+
+        echo json_encode([
+            'success' => true,
+            'message' => 'Order #' . $order_id . ' has been successfully cancelled.' . $refund_note,
+            'order_id' => $order_id,
+            'order_status' => 'cancelled',
+            'cancel_reason' => $full_reason
+        ]);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Failed to cancel order. Please try again or contact customer care.']);
+    }
+    exit;
+}
+
 echo json_encode(['success' => false, 'message' => 'Invalid action request.']);
 exit;
+

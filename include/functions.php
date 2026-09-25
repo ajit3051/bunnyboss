@@ -1057,6 +1057,60 @@ function deduct_order_stock($order_id)
 }
 
 /**
+ * Restore purchased item quantities back to variant stock when an order is cancelled.
+ * Idempotent: checks is_stock_deducted flag so quantities are not restored multiple times.
+ */
+function restore_order_stock($order_id)
+{
+    $order_id = (int)$order_id;
+    if ($order_id <= 0) return false;
+
+    $db = connect();
+
+    // Check if stock was previously deducted
+    $order_stmt = $db->select("SELECT is_stock_deducted FROM tbl_orders WHERE order_id = ?", 'i', $order_id);
+    if (!$order_stmt || $order_stmt->num_rows == 0) return false;
+
+    $order_row = $order_stmt->fetch_assoc();
+    if (empty($order_row['is_stock_deducted']) || (int)$order_row['is_stock_deducted'] === 0) {
+        return true; // Stock wasn't deducted or already restored
+    }
+
+    // Fetch order items and restore quantities into tbl_item_variants
+    $items_stmt = $db->select("SELECT product_id, qty, size FROM tbl_order_items WHERE order_id = ?", 'i', $order_id);
+    if ($items_stmt && $items_stmt->num_rows > 0) {
+        while ($item = $items_stmt->fetch_assoc()) {
+            $product_id = (int)($item['product_id'] ?? 0);
+            $qty        = (int)($item['qty'] ?? 0);
+            $size       = trim((string)($item['size'] ?? ''));
+
+            if ($product_id > 0 && $qty > 0) {
+                if ($size !== '') {
+                    $db->update(
+                        "UPDATE tbl_item_variants SET quantity = quantity + ? WHERE item_id = ? AND size_name = ?",
+                        'iis',
+                        $qty,
+                        $product_id,
+                        $size
+                    );
+                } else {
+                    $db->update(
+                        "UPDATE tbl_item_variants SET quantity = quantity + ? WHERE item_id = ? LIMIT 1",
+                        'ii',
+                        $qty,
+                        $product_id
+                    );
+                }
+            }
+        }
+    }
+
+    // Mark order as stock NOT deducted
+    $db->update("UPDATE tbl_orders SET is_stock_deducted = 0 WHERE order_id = ?", 'i', $order_id);
+    return true;
+}
+
+/**
  * Get primary key column name for tbl_order_items (e.g. 'item_id' or 'id')
  */
 function get_order_items_primary_key($db = null)

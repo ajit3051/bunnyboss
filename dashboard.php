@@ -149,6 +149,13 @@ if ($is_logged_in):
                     $paid_amount_val = (float)($ord['paid_amount'] ?? 0);
                     $cod_due_val = max(0, $grand_total_val - $paid_amount_val);
                     $is_delivered = ($order_status_raw === 'delivered' || $order_status_raw === 'completed');
+
+                    // Cancellation eligibility
+                    $is_cancellable_status = in_array($order_status_raw, ['pending', 'placed', 'processing', 'success']);
+                    $is_already_shipped = in_array($order_status_raw, ['shipped', 'dispatched', 'delivered', 'completed', 'cancelled', 'rto', 'returned']);
+                    $dispatch_raw = strtolower(trim($ord['dispatch_status'] ?? ''));
+                    $is_dispatched = in_array($dispatch_raw, ['shipped', 'dispatched', 'in_transit', 'out_for_delivery']);
+                    $can_cancel = ($is_cancellable_status && !$is_already_shipped && !$is_dispatched);
                 ?>
                     <div class="order-card-box mb-3">
                         <!-- HEADER BAR -->
@@ -235,6 +242,15 @@ if ($is_logged_in):
                                         <button type="button" class="btn btn-outline-primary btn-sm btn-view-order px-3" data-order-id="<?= $ord['order_id'] ?>" style="border-radius: 20px; font-weight: 600;">
                                             <i class="icon-eye mr-1"></i> Details
                                         </button>
+                                        <?php if ($can_cancel): ?>
+                                            <button type="button" class="btn btn-outline-danger btn-sm btn-cancel-order px-3" 
+                                                    data-order-id="<?= $ord['order_id'] ?>" 
+                                                    data-pay-status="<?= $pay_status_raw ?>"
+                                                    data-paid-amt="<?= $paid_amount_val ?>"
+                                                    style="border-radius: 20px; font-weight: 600;">
+                                                <i class="icon-close mr-1"></i> Cancel
+                                            </button>
+                                        <?php endif; ?>
                                         <?php if ($has_awb): ?>
                                             <button type="button" class="btn btn-primary btn-sm btn-track-order px-3" data-order-id="<?= $ord['order_id'] ?>" style="background-color: #19978c; border-color: #19978c; border-radius: 20px; font-weight: 600;">
                                                 <i class="icon-truck mr-1"></i> Track Live

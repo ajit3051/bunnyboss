@@ -86,6 +86,9 @@ if ($is_logged_in):
                         <button type="button" class="order-filter-btn" data-filter="paid">
                             <i class="icon-credit-card"></i> Paid Online
                         </button>
+                        <button type="button" class="order-filter-btn" data-filter="cancelled">
+                            <i class="icon-close"></i> Cancelled
+                        </button>
                     </div>
                 </div>
 
@@ -118,6 +121,14 @@ if ($is_logged_in):
                     $is_in_progress = in_array($order_status_raw, ['pending', 'placed', 'processing', 'shipped', 'dispatched', 'shadowfax', 'delhivery']);
                     $is_cod_type = ($pay_method_raw === 'cod');
                     $is_paid_type = ($pay_status_raw === 'paid');
+                    $is_cancelled_type = ($order_status_raw === 'cancelled');
+
+                    // Cancellation eligibility
+                    $is_cancellable_status = in_array($order_status_raw, ['pending', 'placed', 'processing', 'success']);
+                    $is_already_shipped = in_array($order_status_raw, ['shipped', 'dispatched', 'delivered', 'completed', 'cancelled', 'rto', 'returned']);
+                    $dispatch_raw = strtolower(trim($ord['dispatch_status'] ?? ''));
+                    $is_dispatched = in_array($dispatch_raw, ['shipped', 'dispatched', 'in_transit', 'out_for_delivery']);
+                    $can_cancel = ($is_cancellable_status && !$is_already_shipped && !$is_dispatched);
 
                     // Calculate COD balance due on delivery
                     $grand_total_val = (float)($ord['grand_total'] ?? 0);
@@ -136,7 +147,8 @@ if ($is_logged_in):
                          data-in-progress="<?= $is_in_progress ? 'true' : 'false' ?>"
                          data-delivered="<?= $is_delivered ? 'true' : 'false' ?>"
                          data-cod="<?= $is_cod_type ? 'true' : 'false' ?>"
-                         data-paid="<?= $is_paid_type ? 'true' : 'false' ?>">
+                         data-paid="<?= $is_paid_type ? 'true' : 'false' ?>"
+                         data-cancelled="<?= $is_cancelled_type ? 'true' : 'false' ?>">
                         
                         <!-- CARD HEADER BAR -->
                         <div class="order-card-header-bar">
@@ -233,6 +245,16 @@ if ($is_logged_in):
                                             <i class="icon-eye mr-1"></i> View Order Details
                                         </button>
 
+                                        <?php if ($can_cancel): ?>
+                                            <button type="button" class="btn btn-outline-danger btn-sm btn-cancel-order px-3" 
+                                                    data-order-id="<?= $ord['order_id'] ?>" 
+                                                    data-pay-status="<?= $pay_status_raw ?>"
+                                                    data-paid-amt="<?= $paid_amount_val ?>"
+                                                    style="border-radius: 20px; font-weight: 600;">
+                                                <i class="icon-close mr-1"></i> Cancel Order
+                                            </button>
+                                        <?php endif; ?>
+
                                         <?php if ($has_awb): ?>
                                             <button type="button" class="btn btn-primary btn-sm btn-track-order px-3" data-order-id="<?= $ord['order_id'] ?>" style="background-color: #19978c; border-color: #19978c; border-radius: 20px; font-weight: 600;">
                                                 <i class="icon-truck mr-1"></i> Track Live
@@ -297,6 +319,8 @@ if ($is_logged_in):
                             matchTab = ($card.data('cod') === true || $card.data('cod') === 'true');
                         } else if (currentFilter === 'paid') {
                             matchTab = ($card.data('paid') === true || $card.data('paid') === 'true');
+                        } else if (currentFilter === 'cancelled') {
+                            matchTab = ($card.data('cancelled') === true || $card.data('cancelled') === 'true');
                         }
 
                         if (matchSearch && matchTab) {
