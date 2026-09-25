@@ -233,6 +233,7 @@ include('include/top.php');
 
 .badge-pay-paid { background: #d4edda; color: #155724; }
 .badge-pay-partial_paid { background: #d1ecf1; color: #0c5460; }
+.badge-pay-cod { background: #cce5ff; color: #004085; }
 .badge-pay-pending { background: #fff3cd; color: #856404; }
 .badge-pay-failed { background: #f8d7da; color: #721c24; }
 
@@ -501,8 +502,8 @@ include('include/top.php');
                                                             <td class="small"><?= date('d M Y, h:i A', strtotime($ord['created_at'])) ?></td>
                                                             <td><span class="text-uppercase small font-weight-bold"><?= htmlspecialchars($ord['payment_method']) ?></span></td>
                                                             <td>
-                                                                <span class="order-badge badge-pay-<?= strtolower($ord['payment_status']) ?>">
-                                                                    <?= ucfirst($ord['payment_status']) ?>
+                                                                <span class="order-badge badge-pay-<?= strtolower($ord['payment_status'] ?? '') ?>">
+                                                                    <?= strtoupper($ord['payment_status'] ?? '') === 'COD' ? 'COD' : ucfirst($ord['payment_status'] ?? '') ?>
                                                                 </span>
                                                             </td>
                                                             <td>

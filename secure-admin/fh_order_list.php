@@ -222,7 +222,7 @@ if (isset($_GET['delete_id'])) {
                                  <span style="vertical-align: middle;">Payment Status</span>
                                  <button type="button" id="paymentStatusDropdown" class="btn btn-default btn-xs" style="margin-left: 6px; padding: 2px 7px; background: #fff; border: 1px solid #009688; border-radius: 3px; cursor: pointer; vertical-align: middle; line-height: 1.2;" title="Filter by Payment Status">
                                     <i class="fa fa-filter" id="paymentStatusFilterIcon" style="font-size: 12px; color: #009688;"></i>
-                                    <span id="paymentStatusBadge" class="badge" style="background-color: #009688; font-size: 10px; padding: 2px 5px; margin-left: 2px; display: inline-block;">2</span>
+                                    <span id="paymentStatusBadge" class="badge" style="background-color: #009688; font-size: 10px; padding: 2px 5px; margin-left: 2px; display: inline-block;">3</span>
                                  </button>
                                  <ul class="dropdown-menu" id="paymentStatusMenu" style="padding: 10px 14px; min-width: 230px; font-size: 13px; font-weight: normal; text-align: left; text-transform: none; color: #333; border-radius: 4px; left: 0; top: 100%; box-shadow: 0 4px 15px rgba(0,0,0,0.18); z-index: 1060;">
                                     <li style="margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
@@ -239,6 +239,11 @@ if (isset($_GET['delete_id'])) {
                                     <li style="margin-bottom: 5px;">
                                        <label style="cursor: pointer; font-weight: normal; margin: 0; display: flex; align-items: center; gap: 8px;">
                                           <input type="checkbox" class="payment-status-check" value="partial_paid" checked style="margin: 0; cursor: pointer;"> <span class="label label-info" style="padding: 2px 6px; font-size: 10px;">PARTIAL</span> <span>Partial Paid</span>
+                                       </label>
+                                    </li>
+                                    <li style="margin-bottom: 5px;">
+                                       <label style="cursor: pointer; font-weight: normal; margin: 0; display: flex; align-items: center; gap: 8px;">
+                                          <input type="checkbox" class="payment-status-check" value="cod" checked style="margin: 0; cursor: pointer;"> <span class="label label-primary" style="padding: 2px 6px; font-size: 10px;">COD</span> <span>Cash on Delivery</span>
                                        </label>
                                     </li>
 

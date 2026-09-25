@@ -60,10 +60,16 @@ $grand_total    = (float) ($_SESSION['checkout_summary']['grand_total'] ?? ($sub
 
 $enable_cod_online_deposit = defined('_ENABLE_COD_ONLINE_DEPOSIT_') ? (bool)_ENABLE_COD_ONLINE_DEPOSIT_ : false;
 $enable_razorpay           = defined('_ENABLE_RAZORPAY_')           ? (bool)_ENABLE_RAZORPAY_           : false;
-$is_direct_order           = (!$enable_razorpay) || (!$enable_cod_online_deposit) || ($payment_method === 'cod');
+$requires_razorpay         = ($payment_method === 'razorpay') || 
+                              ($payment_method === 'cod' && $enable_cod_online_deposit && $enable_razorpay);
+$is_direct_order           = !$requires_razorpay;
 
-$order_status   = $is_direct_order ? 'success' : 'pending';
-$payment_status = $is_direct_order ? ($payment_method === 'cod' ? 'pending' : 'paid') : 'pending';
+$order_status = $is_direct_order ? 'success' : 'pending';
+if ($payment_method === 'cod') {
+    $payment_status = $enable_cod_online_deposit ? 'partial_paid' : 'cod';
+} else {
+    $payment_status = $is_direct_order ? 'paid' : 'pending';
+}
 
 $db = connect();
 $current_date = date("Y-m-d H:i:s");

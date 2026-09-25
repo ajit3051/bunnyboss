@@ -87,6 +87,8 @@ if (!empty($selected_statuses)) {
             $statusConditions[] = "(O.payment_status = 'paid' OR O.order_status = 'paid')";
         } elseif ($st === 'partial_paid') {
             $statusConditions[] = "O.payment_status IN ('partial_paid', 'shipping_paid', 'shipping_and_gst_paid')";
+        } elseif ($st === 'cod') {
+            $statusConditions[] = "O.payment_status = 'cod'";
         } elseif ($st === 'pending') {
             $statusConditions[] = "O.payment_status = 'pending'";
         } elseif ($st === 'dispatched') {
@@ -290,6 +292,9 @@ if ($totalRecordsWithLimit > 0) {
         } else if (in_array($displayStatus, ['partial_paid', 'shipping_paid', 'shipping_and_gst_paid'])) {
             $badgeClass = 'label-info';
             $statusText = 'PARTIAL PAID';
+        } else if ($displayStatus === 'cod') {
+            $badgeClass = 'label-primary';
+            $statusText = 'COD';
         } else {
             $badgeClass = 'label-default';
             $statusText = strtoupper($displayStatus);
