@@ -35,6 +35,22 @@ if ($is_logged_in):
     );
     if ($ord_stmt) {
         while ($o_row = $ord_stmt->fetch_assoc()) {
+            // Fetch preview items with images
+            $items_stmt = $db->select(
+                "SELECT OI.product_title, OI.qty, OI.size, OI.price, OI.row_total,
+                        (SELECT image_path FROM tbl_item_images WHERE item_id = OI.product_id ORDER BY sort_order ASC, id ASC LIMIT 1) as picture
+                 FROM tbl_order_items OI 
+                 WHERE OI.order_id = ? LIMIT 2",
+                'i',
+                $o_row['order_id']
+            );
+            $o_row['preview_items'] = [];
+            if ($items_stmt) {
+                while ($it = $items_stmt->fetch_assoc()) {
+                    $o_row['preview_items'][] = $it;
+                }
+            }
+
             $recent_orders[] = $o_row;
             if (in_array(strtolower($o_row['order_status']), ['pending', 'placed', 'processing', 'shipped', 'dispatched'])) {
                 $active_orders_count++;
@@ -118,57 +134,131 @@ if ($is_logged_in):
                 </a>
             </div>
         <?php else: ?>
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="thead-light">
-                        <tr>
-                            <th>Order ID</th>
-                            <th>Date</th>
-                            <th>Payment</th>
-                            <th>Status</th>
-                            <th>Total</th>
-                            <th class="text-right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($recent_orders as $ord): ?>
-                            <tr>
-                                <td>
-                                    <strong class="text-dark">#<?= $ord['order_id'] ?></strong>
-                                    <div class="small text-muted"><?= (int)$ord['total_items'] ?> item(s)</div>
-                                </td>
-                                <td class="small text-muted">
-                                    <?= date('d M Y', strtotime($ord['created_at'])) ?><br>
-                                    <?= date('h:i A', strtotime($ord['created_at'])) ?>
-                                </td>
-                                <td>
-                                    <span class="order-badge badge-pay-<?= strtolower($ord['payment_status'] ?? 'pending') ?>">
-                                        <?= strtoupper($ord['payment_status'] ?? 'PENDING') ?>
-                                    </span>
-                                    <div class="small text-muted mt-1 font-weight-bold"><?= strtoupper($ord['payment_method']) ?></div>
-                                </td>
-                                <td>
-                                    <span class="order-badge badge-status-<?= strtolower($ord['order_status'] ?? 'pending') ?>">
-                                        <?= strtoupper($ord['order_status'] ?? 'PENDING') ?>
-                                    </span>
-                                </td>
-                                <td>
-                                    <strong class="text-dark font-weight-bold" style="font-size: 15px;">₹<?= number_format($ord['grand_total'], 2) ?></strong>
-                                </td>
-                                <td class="text-right">
-                                    <div class="btn-group btn-group-sm">
-                                        <button class="btn btn-outline-primary btn-view-order btn-sm px-2" data-order-id="<?= $ord['order_id'] ?>" title="View Breakdown">
-                                            <i class="icon-eye"></i> Details
-                                        </button>
-                                        <button class="btn btn-outline-info btn-track-order btn-sm px-2" data-order-id="<?= $ord['order_id'] ?>" title="Track Shipment Live">
-                                            <i class="icon-truck"></i> Track
-                                        </button>
+            <div class="recent-orders-list">
+                <?php foreach ($recent_orders as $ord): 
+                    $order_date_str = date('d M Y, h:i A', strtotime($ord['created_at']));
+                    $has_awb = !empty($ord['courier_awb']) || !empty($ord['delhivery_awb']);
+                    $awb_code = !empty($ord['courier_awb']) ? $ord['courier_awb'] : (!empty($ord['delhivery_awb']) ? $ord['delhivery_awb'] : '');
+                    $courier_name = !empty($ord['courier_name']) ? ucfirst($ord['courier_name']) : 'Delhivery';
+
+                    $pay_status_raw = strtolower(trim($ord['payment_status'] ?? 'pending'));
+                    $order_status_raw = strtolower(trim($ord['order_status'] ?? 'pending'));
+                    $pay_method_raw = strtolower(trim($ord['payment_method'] ?? 'cod'));
+
+                    $grand_total_val = (float)($ord['grand_total'] ?? 0);
+                    $paid_amount_val = (float)($ord['paid_amount'] ?? 0);
+                    $cod_due_val = max(0, $grand_total_val - $paid_amount_val);
+                    $is_delivered = ($order_status_raw === 'delivered' || $order_status_raw === 'completed');
+                ?>
+                    <div class="order-card-box mb-3">
+                        <!-- HEADER BAR -->
+                        <div class="order-card-header-bar">
+                            <div class="d-flex align-items-center flex-wrap gap-2" style="gap: 12px;">
+                                <span class="order-id-title">Order #<?= $ord['order_id'] ?></span>
+                                <span class="text-muted" style="font-size: 13px;">
+                                    <i class="icon-calendar mr-1"></i> <?= $order_date_str ?>
+                                </span>
+                            </div>
+
+                            <div class="d-flex align-items-center flex-wrap gap-2" style="gap: 8px;">
+                                <span class="order-badge badge-pay-<?= $pay_status_raw ?>">
+                                    <?php if ($pay_status_raw === 'cod'): ?>
+                                        <i class="icon-money mr-1"></i> COD
+                                    <?php elseif ($pay_status_raw === 'paid'): ?>
+                                        <i class="icon-check mr-1"></i> PAID
+                                    <?php elseif ($pay_status_raw === 'partial_paid'): ?>
+                                        <i class="icon-credit-card mr-1"></i> PARTIAL PAID
+                                    <?php else: ?>
+                                        <i class="icon-clock-o mr-1"></i> <?= strtoupper($pay_status_raw) ?>
+                                    <?php endif; ?>
+                                </span>
+
+                                <span class="order-badge badge-status-<?= $order_status_raw ?>">
+                                    <?= strtoupper($order_status_raw) ?>
+                                </span>
+
+                                <span class="badge badge-light px-2 py-1 text-uppercase text-secondary" style="font-size: 11px; border: 1px solid #e2e8f0;">
+                                    <?= htmlspecialchars($ord['payment_method']) ?>
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- BODY -->
+                        <div class="order-card-main-body">
+                            <div class="row align-items-center">
+                                <div class="col-lg-7 col-md-12 mb-3 mb-lg-0">
+                                    <div class="d-flex flex-column gap-2" style="gap: 10px;">
+                                        <?php foreach ($ord['preview_items'] as $item): 
+                                            $img_src = !empty($item['picture']) ? (defined('_IMAGE_PATH') ? _IMAGE_PATH : _BASEURL . 'uploads/') . 'item-master/' . ltrim($item['picture'], '/') : _BASEURL . 'assets/images/no-image.jpg';
+                                        ?>
+                                            <div class="d-flex align-items-center" style="gap: 12px;">
+                                                <img src="<?= $img_src ?>" alt="" class="order-thumb-img" onerror="this.src='<?= _BASEURL ?>assets/images/no-image.jpg';">
+                                                <div>
+                                                    <h6 class="text-dark mb-1 font-weight-bold" style="font-size: 14px; line-height: 1.3;">
+                                                        <?= htmlspecialchars($item['product_title']) ?>
+                                                    </h6>
+                                                    <div class="d-flex align-items-center flex-wrap gap-2 text-muted small" style="gap: 8px;">
+                                                        <?php if (!empty($item['size'])): ?>
+                                                            <span class="badge badge-light" style="border: 1px solid #e2e8f0; font-weight: 600;">Size: <?= htmlspecialchars($item['size']) ?></span>
+                                                        <?php endif; ?>
+                                                        <span>Qty: <strong><?= $item['qty'] ?></strong></span>
+                                                        <span>&bull;</span>
+                                                        <span class="font-weight-bold text-dark">₹<?= number_format($item['price'], 2) ?> each</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        <?php endforeach; ?>
+
+                                        <?php if ((int)$ord['total_items'] > count($ord['preview_items'])): ?>
+                                            <div class="small text-muted font-italic pl-2">
+                                                + <?= (int)$ord['total_items'] - count($ord['preview_items']) ?> more item(s)
+                                            </div>
+                                        <?php endif; ?>
                                     </div>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
+                                </div>
+
+                                <div class="col-lg-5 col-md-12 text-lg-right">
+                                    <div class="mb-3">
+                                        <span class="text-muted small d-block">Grand Total</span>
+                                        <span class="font-weight-bold text-dark" style="font-size: 20px; color: #19978c !important;">
+                                            ₹<?= number_format($grand_total_val, 2) ?>
+                                        </span>
+
+                                        <?php if ($pay_method_raw === 'cod' && $cod_due_val > 0 && !$is_delivered): ?>
+                                            <div class="d-inline-block text-left mt-2 p-2 rounded" style="background: #fef3c7; border: 1px solid #fde68a; font-size: 11px; color: #92400e;">
+                                                <i class="icon-money mr-1"></i> To Pay on Delivery: <strong>₹<?= number_format($cod_due_val, 2) ?></strong>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+
+                                    <div class="d-flex justify-content-lg-end align-items-center flex-wrap gap-2" style="gap: 8px;">
+                                        <button type="button" class="btn btn-outline-primary btn-sm btn-view-order px-3" data-order-id="<?= $ord['order_id'] ?>" style="border-radius: 20px; font-weight: 600;">
+                                            <i class="icon-eye mr-1"></i> Details
+                                        </button>
+                                        <?php if ($has_awb): ?>
+                                            <button type="button" class="btn btn-primary btn-sm btn-track-order px-3" data-order-id="<?= $ord['order_id'] ?>" style="background-color: #19978c; border-color: #19978c; border-radius: 20px; font-weight: 600;">
+                                                <i class="icon-truck mr-1"></i> Track Live
+                                            </button>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- COURIER STRIP -->
+                        <?php if ($has_awb): ?>
+                            <div class="order-courier-strip">
+                                <div>
+                                    <i class="icon-truck mr-1"></i> Courier: <strong><?= $courier_name ?></strong> &nbsp;|&nbsp; 
+                                    AWB: <strong class="text-dark"><?= htmlspecialchars($awb_code) ?></strong>
+                                </div>
+                                <a href="javascript:void(0)" class="btn-track-order font-weight-bold" data-order-id="<?= $ord['order_id'] ?>" style="color: #0f766e; text-decoration: underline;">
+                                    Track Live &rarr;
+                                </a>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                <?php endforeach; ?>
             </div>
         <?php endif; ?>
     </div>
