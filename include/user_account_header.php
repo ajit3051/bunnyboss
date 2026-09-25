@@ -401,6 +401,225 @@ include(__DIR__ . '/top.php');
     font-size: 14px;
 }
 
+/* Order Listing & Detail Modal Styling */
+.order-filter-pills {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.order-filter-btn {
+    border: 1px solid #e2e8f0;
+    background: #ffffff;
+    color: #475569;
+    border-radius: 20px;
+    padding: 6px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.order-filter-btn:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    color: #0f172a;
+}
+.order-filter-btn.active {
+    background: #19978c;
+    border-color: #19978c;
+    color: #ffffff;
+    box-shadow: 0 3px 8px rgba(25, 151, 140, 0.3);
+}
+
+.order-card-box {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+    margin-bottom: 22px;
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.order-card-box:hover {
+    box-shadow: 0 10px 20px -3px rgba(0,0,0,0.06);
+    border-color: #cbd5e1;
+}
+
+.order-card-header-bar {
+    background: #f8fafc;
+    padding: 14px 20px;
+    border-bottom: 1px solid #eef2f5;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+.order-card-header-bar .order-id-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0;
+}
+
+.order-card-main-body {
+    padding: 20px;
+}
+
+.order-thumb-img {
+    width: 68px;
+    height: 68px;
+    object-fit: cover;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    flex-shrink: 0;
+    background: #f8fafc;
+}
+
+.order-courier-strip {
+    background: #f0fdfa;
+    border-top: 1px solid #ccfbf1;
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    font-size: 13px;
+    color: #0f766e;
+}
+
+/* Modal Stepper */
+.order-stepper {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    margin: 15px 0 25px;
+    padding: 0 10px;
+}
+.order-stepper::before {
+    content: '';
+    position: absolute;
+    top: 18px;
+    left: 40px;
+    right: 40px;
+    height: 3px;
+    background: #e2e8f0;
+    z-index: 1;
+}
+.stepper-step {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    flex: 1;
+}
+.stepper-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 3px solid #cbd5e1;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 8px;
+    font-size: 14px;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+.stepper-label {
+    font-size: 12px;
+    color: #64748b;
+    font-weight: 600;
+}
+.stepper-step.completed .stepper-icon {
+    background: #10b981;
+    border-color: #10b981;
+    color: #ffffff;
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15);
+}
+.stepper-step.completed .stepper-label {
+    color: #10b981;
+    font-weight: 700;
+}
+.stepper-step.active .stepper-icon {
+    background: #19978c;
+    border-color: #19978c;
+    color: #ffffff;
+    box-shadow: 0 0 0 6px rgba(25, 151, 140, 0.2);
+}
+.stepper-step.active .stepper-label {
+    color: #19978c;
+    font-weight: 700;
+}
+
+/* Modal Info Summary Cards */
+.modal-info-card {
+    background: #f8fafc;
+    border: 1px solid #eef2f5;
+    border-radius: 12px;
+    padding: 16px;
+    height: 100%;
+}
+.modal-info-card-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Financial Box */
+.financial-summary-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 18px 22px;
+}
+.cod-due-callout {
+    background: #fef3c7;
+    border: 1px solid #fde68a;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-top: 12px;
+    color: #92400e;
+    font-weight: 700;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* Print Invoice Styling */
+@media print {
+    body * {
+        visibility: hidden;
+    }
+    #orderDetailsModal, #orderDetailsModal * {
+        visibility: visible;
+    }
+    #orderDetailsModal {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+    }
+    .modal-header .close, .modal-footer {
+        display: none !important;
+    }
+}
+
 /* Mobile responsive tabs */
 @media (max-width: 767px) {
     .account-nav-card {
@@ -424,6 +643,9 @@ include(__DIR__ . '/top.php');
     }
     .dashboard-user-meta {
         justify-content: center;
+    }
+    .order-stepper {
+        display: none;
     }
 }
 </style>

@@ -335,7 +335,7 @@ $(document.body).ready(function() {
     $(document).on('click', '.btn-view-order', function() {
         var orderId = $(this).data('order-id');
         $('#modal-order-id').text('#' + orderId);
-        $('#modal-order-body').html('<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>');
+        $('#modal-order-body').html('<div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div><p class="mt-3 text-muted small font-weight-bold">Loading order invoice & breakdown...</p></div>');
         $('#orderDetailsModal').modal('show');
 
         $.ajax({
@@ -348,42 +348,122 @@ $(document.body).ready(function() {
                     var ord = res.order;
                     var items = res.items || [];
                     
-                    var html = '<div class="row mb-3">' +
-                                   '<div class="col-sm-6 mb-2">' +
-                                       '<h6 class="font-weight-bold text-dark mb-2">Order Information</h6>' +
-                                       '<p class="small text-muted mb-1"><strong>Order ID:</strong> #' + ord.order_id + '</p>' +
-                                       '<p class="small text-muted mb-1"><strong>Date:</strong> ' + ord.created_at + '</p>' +
-                                       '<p class="small text-muted mb-1"><strong>Payment Method:</strong> ' + ord.payment_method.toUpperCase() + '</p>' +
-                                       '<p class="small text-muted mb-1"><strong>Payment Status:</strong> <span class="order-badge badge-pay-' + (ord.payment_status ? ord.payment_status.toLowerCase() : 'pending') + '">' + (ord.payment_status ? ord.payment_status.toUpperCase() : 'PENDING') + '</span></p>' +
-                                       '<p class="small text-muted mb-0"><strong>Order Status:</strong> <span class="order-badge badge-status-' + (ord.order_status ? ord.order_status.toLowerCase() : 'pending') + '">' + (ord.order_status ? ord.order_status.toUpperCase() : 'PENDING') + '</span></p>' +
-                                   '</div>' +
-                                   '<div class="col-sm-6 mb-2">' +
-                                       '<h6 class="font-weight-bold text-dark mb-2">Shipping Address</h6>' +
-                                       '<p class="small text-dark mb-1 font-weight-bold">' + ord.first_name + ' ' + ord.last_name + '</p>' +
-                                       '<p class="small text-muted mb-1">' + ord.street_address + '<br>' + ord.city + ' - ' + ord.postcode + '</p>' +
-                                       '<p class="small text-muted mb-0"><i class="icon-phone mr-1"></i>+91-' + ord.phone + '</p>' +
-                                   '</div>' +
-                               '</div>' +
-                               '<h6 class="border-top pt-3 mb-2 font-weight-bold text-dark">Order Items (' + items.length + ')</h6>' +
-                               '<div class="table-responsive"><table class="table table-sm align-middle">' +
-                               '<thead class="thead-light"><tr><th>Item</th><th>Size</th><th>Price</th><th>Qty</th><th class="text-right">Total</th></tr></thead><tbody>';
+                    var ordStatus = (ord.order_status ? ord.order_status.toLowerCase() : 'pending');
+                    var payStatus = (ord.payment_status ? ord.payment_status.toLowerCase() : 'pending');
+                    var payMethod = (ord.payment_method ? ord.payment_method.toUpperCase() : 'COD');
+                    var awb = ord.courier_awb || ord.delhivery_awb || '';
+                    var courierName = ord.courier_name ? (ord.courier_name.charAt(0).toUpperCase() + ord.courier_name.slice(1)) : 'Delhivery';
+
+                    // Stepper status logic
+                    var isCancelled = (ordStatus === 'cancelled');
+                    var isDelivered = (ordStatus === 'delivered' || ordStatus === 'completed');
+                    var isDispatched = (!isDelivered && (ordStatus === 'shipped' || ordStatus === 'dispatched' || ord.dispatch_status === 'dispatched' || awb !== ''));
+                    var isProcessing = (!isDelivered && !isDispatched && (ordStatus === 'processing' || ordStatus === 'placed' || ordStatus === 'success'));
+
+                    var stepperHtml = '';
+                    if (isCancelled) {
+                        stepperHtml = '<div class="alert alert-danger py-2 px-3 mb-4 text-center rounded" style="font-size: 13px;">' +
+                                          '<i class="icon-close mr-1"></i> This order was cancelled.' +
+                                      '</div>';
+                    } else {
+                        stepperHtml = '<div class="order-stepper">' +
+                                          '<div class="stepper-step completed">' +
+                                              '<div class="stepper-icon"><i class="icon-check"></i></div>' +
+                                              '<div class="stepper-label">Order Placed</div>' +
+                                          '</div>' +
+                                          '<div class="stepper-step ' + (isProcessing ? 'active' : (isDispatched || isDelivered ? 'completed' : '')) + '">' +
+                                              '<div class="stepper-icon">' + (isDispatched || isDelivered ? '<i class="icon-check"></i>' : '2') + '</div>' +
+                                              '<div class="stepper-label">Processing</div>' +
+                                          '</div>' +
+                                          '<div class="stepper-step ' + (isDispatched ? 'active' : (isDelivered ? 'completed' : '')) + '">' +
+                                              '<div class="stepper-icon">' + (isDelivered ? '<i class="icon-check"></i>' : '3') + '</div>' +
+                                              '<div class="stepper-label">Dispatched</div>' +
+                                          '</div>' +
+                                          '<div class="stepper-step ' + (isDelivered ? 'completed' : '') + '">' +
+                                              '<div class="stepper-icon">' + (isDelivered ? '<i class="icon-check"></i>' : '4') + '</div>' +
+                                              '<div class="stepper-label">Delivered</div>' +
+                                          '</div>' +
+                                      '</div>';
+                    }
+
+                    // 3 Information Summary Cards
+                    var infoCardsHtml = '<div class="row mb-4">' +
+                        '<div class="col-md-4 mb-3 mb-md-0">' +
+                            '<div class="modal-info-card">' +
+                                '<div class="modal-info-card-title"><i class="icon-file-text text-primary"></i> Order & Payment</div>' +
+                                '<p class="small text-muted mb-1"><strong>Order ID:</strong> <span class="text-dark font-weight-bold">#' + ord.order_id + '</span></p>' +
+                                '<p class="small text-muted mb-1"><strong>Date:</strong> ' + ord.created_at + '</p>' +
+                                '<p class="small text-muted mb-1"><strong>Method:</strong> <span class="badge badge-light border text-uppercase">' + payMethod + '</span></p>' +
+                                '<p class="small text-muted mb-0"><strong>Payment:</strong> <span class="order-badge badge-pay-' + payStatus + '">' + payStatus.toUpperCase() + '</span></p>' +
+                            '</div>' +
+                        '</div>' +
+
+                        '<div class="col-md-4 mb-3 mb-md-0">' +
+                            '<div class="modal-info-card">' +
+                                '<div class="modal-info-card-title"><i class="icon-map-marker text-warning"></i> Shipping Address</div>' +
+                                '<p class="small text-dark mb-1 font-weight-bold">' + escapeHtml(ord.first_name + ' ' + ord.last_name) + '</p>' +
+                                '<p class="small text-muted mb-1" style="line-height: 1.4;">' + escapeHtml(ord.street_address) + '<br>' + escapeHtml(ord.city) + ' - ' + escapeHtml(ord.postcode) + '</p>' +
+                                '<p class="small text-muted mb-0"><i class="icon-phone mr-1"></i>+91 ' + escapeHtml(ord.phone) + '</p>' +
+                            '</div>' +
+                        '</div>' +
+
+                        '<div class="col-md-4">' +
+                            '<div class="modal-info-card">' +
+                                '<div class="modal-info-card-title"><i class="icon-truck text-teal" style="color: #0d9488;"></i> Courier Delivery</div>' +
+                                (awb ? (
+                                    '<p class="small text-muted mb-1"><strong>Partner:</strong> <span class="text-dark font-weight-bold">' + escapeHtml(courierName) + '</span></p>' +
+                                    '<p class="small text-muted mb-2"><strong>AWB:</strong> <code class="text-dark">' + escapeHtml(awb) + '</code></p>' +
+                                    '<button type="button" class="btn btn-outline-info btn-xs btn-track-order w-100" data-order-id="' + ord.order_id + '" style="border-radius: 12px; font-weight: 600;">' +
+                                        '<i class="icon-truck mr-1"></i> Track Live Status' +
+                                    '</button>'
+                                ) : (
+                                    '<p class="small text-muted mb-1"><strong>Status:</strong> Preparing for dispatch</p>' +
+                                    '<p class="small text-muted mb-0">Tracking details will update once handed over to the courier partner.</p>'
+                                )) +
+                            '</div>' +
+                        '</div>' +
+                    '</div>';
+
+                    // Items Table
+                    var itemsHtml = '<h6 class="font-weight-bold text-dark mb-3"><i class="icon-shopping-bag mr-1"></i> Ordered Items (' + items.length + ')</h6>' +
+                                    '<div class="table-responsive mb-4" style="border: 1px solid #eef2f5; border-radius: 10px; overflow: hidden;">' +
+                                        '<table class="table table-hover align-middle mb-0">' +
+                                            '<thead class="thead-light" style="background: #f8fafc;">' +
+                                                '<tr>' +
+                                                    '<th style="border: none;">Item</th>' +
+                                                    '<th style="border: none; text-align: center;">Size</th>' +
+                                                    '<th style="border: none; text-align: right;">Unit Price</th>' +
+                                                    '<th style="border: none; text-align: center;">Qty</th>' +
+                                                    '<th style="border: none; text-align: right;">Total</th>' +
+                                                '</tr>' +
+                                            '</thead>' +
+                                            '<tbody>';
 
                     items.forEach(function(it) {
-                        html += '<tr>' +
-                                    '<td class="d-flex align-items-center">' +
-                                        '<img src="' + it.image_url + '" style="width:40px; height:40px; object-fit:cover; border-radius:6px; margin-right:10px; border: 1px solid #eee;" alt="">' +
-                                        '<div><strong class="small text-dark">' + it.product_title + '</strong></div>' +
-                                    '</td>' +
-                                    '<td>' + (it.size ? it.size : '-') + '</td>' +
-                                    '<td>₹' + parseFloat(it.price).toFixed(2) + '</td>' +
-                                    '<td>' + it.qty + '</td>' +
-                                    '<td class="text-right font-weight-bold">₹' + parseFloat(it.row_total).toFixed(2) + '</td>' +
-                                '</tr>';
+                        itemsHtml += '<tr>' +
+                                        '<td class="d-flex align-items-center" style="gap: 12px; border-top: 1px solid #f1f5f9;">' +
+                                            '<img src="' + it.image_url + '" style="width: 52px; height: 52px; object-fit: cover; border-radius: 8px; border: 1px solid #e2e8f0;" alt="" onerror="this.src=\'<?= _BASEURL ?>assets/images/no-image.jpg\';">' +
+                                            '<div>' +
+                                                '<strong class="text-dark d-block" style="font-size: 13px; line-height: 1.3;">' + escapeHtml(it.product_title) + '</strong>' +
+                                                (it.transaction_id ? '<small class="text-muted">Item ID: ' + escapeHtml(it.transaction_id) + '</small>' : '') +
+                                            '</div>' +
+                                        '</td>' +
+                                        '<td style="text-align: center; border-top: 1px solid #f1f5f9;">' +
+                                            (it.size ? '<span class="badge badge-light border font-weight-bold">' + escapeHtml(it.size) + '</span>' : '-') +
+                                        '</td>' +
+                                        '<td style="text-align: right; border-top: 1px solid #f1f5f9;">₹' + parseFloat(it.price).toFixed(2) + '</td>' +
+                                        '<td style="text-align: center; border-top: 1px solid #f1f5f9;"><strong>' + it.qty + '</strong></td>' +
+                                        '<td style="text-align: right; border-top: 1px solid #f1f5f9;" class="font-weight-bold text-dark">₹' + parseFloat(it.row_total).toFixed(2) + '</td>' +
+                                     '</tr>';
                     });
 
+                    itemsHtml += '</tbody></table></div>';
+
+                    // Financial Calculations
                     var subAmt = parseFloat(ord.subtotal) || 0;
                     var grandAmt = parseFloat(ord.grand_total) || 0;
                     var gstAmt = parseFloat(ord.gst_amount) || 0;
+                    var paidAmt = parseFloat(ord.paid_amount) || 0;
                     var gstPercent = 0;
 
                     items.forEach(function(it) {
@@ -400,34 +480,68 @@ $(document.body).ready(function() {
                     }
 
                     var shippingAmt = Math.max(0, grandAmt - (subAmt + gstAmt));
-                    var gstLabel = gstPercent > 0 ? ('GST (' + gstPercent + '%):') : 'GST:';
-                    var gstHtml = gstAmt > 0 ? '<p class="mb-1 small"><span>' + gstLabel + '</span> <strong>₹' + gstAmt.toFixed(2) + '</strong></p>' : '';
-                    var shippingHtml = shippingAmt > 0 ? '<p class="mb-1 small"><span>Shipping:</span> <strong>₹' + shippingAmt.toFixed(2) + '</strong></p>' : '';
+                    var codDueAmt = Math.max(0, grandAmt - paidAmt);
 
-                    html += '</tbody></table></div>' +
-                            '<div class="border-top pt-2 text-right">' +
-                                '<p class="mb-1 small">Subtotal: <strong>₹' + subAmt.toFixed(2) + '</strong></p>' +
-                                gstHtml +
-                                shippingHtml +
-                                '<h5 class="text-dark font-weight-bold mb-0 mt-1 pt-1 border-top" style="color: #19978c !important;">Grand Total: ₹' + grandAmt.toFixed(2) + '</h5>' +
-                            '</div>';
-
-                    var awb = ord.courier_awb || ord.delhivery_awb;
-                    var courierName = ord.courier_name ? (ord.courier_name.charAt(0).toUpperCase() + ord.courier_name.slice(1)) : 'Courier';
-                    if (awb) {
-                        html += '<div class="alert alert-info mt-3 py-2 text-center mb-0" style="border-radius: 8px;">' +
-                                    '<small><strong>Courier Partner:</strong> ' + courierName + ' &nbsp;|&nbsp; <strong>AWB:</strong> ' + awb + ' &nbsp;|&nbsp; ' +
-                                    '<a href="javascript:void(0)" class="alert-link btn-track-order" data-order-id="' + ord.order_id + '" data-dismiss="modal">Track Package &rarr;</a></small>' +
+                    // Financial Breakdown HTML
+                    var financeHtml = '<div class="row justify-content-end">' +
+                        '<div class="col-md-7 col-lg-6">' +
+                            '<div class="financial-summary-card">' +
+                                '<div class="d-flex justify-content-between mb-2 small text-muted">' +
+                                    '<span>Items Subtotal:</span>' +
+                                    '<strong class="text-dark">₹' + subAmt.toFixed(2) + '</strong>' +
+                                '</div>' +
+                                (gstAmt > 0 ? (
+                                    '<div class="d-flex justify-content-between mb-2 small text-muted">' +
+                                        '<span>GST (' + (gstPercent > 0 ? gstPercent + '%' : 'Included') + '):</span>' +
+                                        '<strong class="text-dark">₹' + gstAmt.toFixed(2) + '</strong>' +
+                                    '</div>'
+                                ) : '') +
+                                '<div class="d-flex justify-content-between mb-2 small text-muted">' +
+                                    '<span>Delivery / Shipping:</span>' +
+                                    '<strong class="text-dark">' + (shippingAmt > 0 ? ('₹' + shippingAmt.toFixed(2)) : '<span class="text-success font-weight-bold">FREE</span>') + '</strong>' +
+                                '</div>' +
+                                '<div class="d-flex justify-content-between pt-2 border-top mb-1" style="font-size: 17px;">' +
+                                    '<strong class="text-dark">Grand Total:</strong>' +
+                                    '<strong style="color: #19978c;">₹' + grandAmt.toFixed(2) + '</strong>' +
                                 '</div>';
+
+                    if (payMethod.toLowerCase() === 'cod') {
+                        if (paidAmt > 0) {
+                            financeHtml += '<div class="d-flex justify-content-between small text-muted pt-1">' +
+                                               '<span>Online Upfront Deposit:</span>' +
+                                               '<span class="text-success font-weight-bold">- ₹' + paidAmt.toFixed(2) + '</span>' +
+                                           '</div>';
+                        }
+                        if (codDueAmt > 0 && !isDelivered) {
+                            financeHtml += '<div class="cod-due-callout">' +
+                                               '<span><i class="icon-money mr-1"></i> Cash on Delivery Due:</span>' +
+                                               '<span>₹' + codDueAmt.toFixed(2) + '</span>' +
+                                           '</div>';
+                        }
                     }
 
-                    $('#modal-order-body').html(html);
+                    financeHtml += '</div></div></div>';
+
+                    // Modal action buttons in footer
+                    var modalFooterHtml = '<div class="d-flex justify-content-between align-items-center w-100">' +
+                                              '<button type="button" class="btn btn-outline-dark btn-sm px-3" onclick="window.print()" style="border-radius: 20px; font-weight: 600;">' +
+                                                  '<i class="icon-print mr-1"></i> Print Invoice' +
+                                              '</button>' +
+                                              '<div class="d-flex gap-2" style="gap: 8px;">' +
+                                                  (awb ? '<button type="button" class="btn btn-primary btn-sm px-3 btn-track-order" data-order-id="' + ord.order_id + '" style="background-color: #19978c; border-color: #19978c; border-radius: 20px; font-weight: 600;"><i class="icon-truck mr-1"></i> Track Shipment</button>' : '') +
+                                                  '<button type="button" class="btn btn-secondary btn-sm px-3" data-dismiss="modal" style="border-radius: 20px;">Close</button>' +
+                                              '</div>' +
+                                          '</div>';
+
+                    $('#modal-order-body').html(stepperHtml + infoCardsHtml + itemsHtml + financeHtml);
+                    $('#orderDetailsModal .modal-footer').html(modalFooterHtml);
+
                 } else {
-                    $('#modal-order-body').html('<div class="alert alert-danger">' + (res.message || 'Failed to load order breakdown.') + '</div>');
+                    $('#modal-order-body').html('<div class="alert alert-danger py-3 text-center">' + (res.message || 'Failed to load order breakdown.') + '</div>');
                 }
             },
             error: function() {
-                $('#modal-order-body').html('<div class="alert alert-danger">Network error occurred while fetching order details.</div>');
+                $('#modal-order-body').html('<div class="alert alert-danger py-3 text-center">Network error occurred while fetching order details.</div>');
             }
         });
     });
