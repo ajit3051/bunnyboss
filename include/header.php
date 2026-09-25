@@ -445,9 +445,9 @@ $current_loc = function_exists('getCurrentDeliveryLocation')
                         </a>
                         <div class="dropdown-menu dropdown-menu-right" style="min-width: 180px; padding: 12px; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
                             <a class="dropdown-item text-dark font-weight-bold" href="<?= _BASEURL ?>dashboard.php"><i class="icon-dashboard mr-2"></i> My Dashboard</a>
-                            <a class="dropdown-item text-dark" href="<?= _BASEURL ?>dashboard.php?tab=orders"><i class="icon-shopping-cart mr-2"></i> My Orders</a>
-                            <a class="dropdown-item text-dark" href="<?= _BASEURL ?>dashboard.php?tab=addresses"><i class="icon-map-marker mr-2"></i> Saved Addresses</a>
-                            <a class="dropdown-item text-dark" href="<?= _BASEURL ?>dashboard.php?tab=profile"><i class="icon-user mr-2"></i> Basic Details</a>
+                            <a class="dropdown-item text-dark" href="<?= _BASEURL ?>orders.php"><i class="icon-shopping-cart mr-2"></i> My Orders</a>
+                            <a class="dropdown-item text-dark" href="<?= _BASEURL ?>addresses.php"><i class="icon-map-marker mr-2"></i> Saved Addresses</a>
+                            <a class="dropdown-item text-dark" href="<?= _BASEURL ?>profile.php"><i class="icon-user mr-2"></i> Basic Details</a>
                             <?php if (in_array($user_role_val, ['admin', 'staff'], true)): ?>
                                 <div class="dropdown-divider my-1"></div>
                                 <a class="dropdown-item text-primary font-weight-bold" href="<?= _ADMIN_URL ?>index.php"><i class="icon-dashboard mr-1"></i> Admin Panel</a>

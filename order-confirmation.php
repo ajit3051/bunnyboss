@@ -769,8 +769,8 @@ include('include/top.php');
                                     <?php endif; ?>
                                 </div>
                                 <?php if (!empty($_SESSION['user_id']) || !empty($_SESSION['user_mobile'])): ?>
-                                    <a href="<?= _BASEURL ?>dashboard.php?tab=orders" class="text-primary font-weight-bold" style="font-size: 13px;">
-                                        Track in Dashboard &rarr;
+                                    <a href="<?= _BASEURL ?>orders.php" class="text-primary font-weight-bold" style="font-size: 13px;">
+                                        Track in Orders &rarr;
                                     </a>
                                 <?php endif; ?>
                             </div>
@@ -917,7 +917,7 @@ include('include/top.php');
                 </a>
 
                 <?php if (!empty($_SESSION['user_id']) || !empty($_SESSION['user_mobile'])): ?>
-                <a href="<?= _BASEURL ?>dashboard.php?tab=orders" class="conf-btn conf-btn-secondary">
+                <a href="<?= _BASEURL ?>orders.php" class="conf-btn conf-btn-secondary">
                     <i class="icon-user"></i> View in Order History
                 </a>
                 <?php endif; ?>
