@@ -59,7 +59,7 @@ if (!defined('SMS_TEMPLATE_TEXT')) {
 
 // DLT Approved Template ID for Order Placed
 if (!defined('SMS_ORDER_TEMPLATE_ID')) {
-    define('SMS_ORDER_TEMPLATE_ID', '1777179005799027454');
+    define('SMS_ORDER_TEMPLATE_ID', '1777178998165829019');
 }
 
 // DLT Approved Template Message Text for Order Placed

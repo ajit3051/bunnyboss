@@ -25,10 +25,22 @@ date_default_timezone_set("Asia/Calcutta");
 // define("_BASEPATH", htmlspecialchars($_SERVER['DOCUMENT_ROOT']) . '/secure-admin/');
 
 
-define("_FRONTEND_URL", 'http://localhost/bbin/');
-define("_FRONTEND_PATH", htmlspecialchars($_SERVER['DOCUMENT_ROOT']) . '/bbin/');
-define("_BASEURL", 'http://localhost/bbin/secure-admin/');
-define("_BASEPATH", htmlspecialchars($_SERVER['DOCUMENT_ROOT']) . '/bbin/secure-admin/');
+$script_dir = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? ''));
+$folder = (strpos($script_dir, '/bbin') !== false) ? 'bbin' : 'bunnyboss';
+$host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+if ($host === 'bunnyboss.in' || $host === 'www.bunnyboss.in') {
+    define("_FRONTEND_URL", 'https://bunnyboss.in/');
+    define("_FRONTEND_PATH", (!empty($_SERVER['DOCUMENT_ROOT']) ? htmlspecialchars($_SERVER['DOCUMENT_ROOT']) : realpath(__DIR__ . '/../../')) . '/');
+    define("_BASEURL", 'https://bunnyboss.in/secure-admin/');
+    define("_BASEPATH", (!empty($_SERVER['DOCUMENT_ROOT']) ? htmlspecialchars($_SERVER['DOCUMENT_ROOT']) : realpath(__DIR__ . '/../../')) . '/secure-admin/');
+} else {
+    $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? "https://" : "http://";
+    $doc_root = (!empty($_SERVER['DOCUMENT_ROOT']) ? htmlspecialchars($_SERVER['DOCUMENT_ROOT']) . '/' . $folder : realpath(__DIR__ . '/../../'));
+    define("_FRONTEND_URL", $protocol . $host . '/' . $folder . '/');
+    define("_FRONTEND_PATH", $doc_root . '/');
+    define("_BASEURL", $protocol . $host . '/' . $folder . '/secure-admin/');
+    define("_BASEPATH", $doc_root . '/secure-admin/');
+}
 
 
 if (!defined('_CLASS_PATH'))

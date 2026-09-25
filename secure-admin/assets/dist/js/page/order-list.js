@@ -37,15 +37,309 @@
     });
 
     // Search / Date filter - Search button click
+    // Multicheck Filters Tracking
+    var lastAppliedPaymentStatus  = $("#hidden_payment_status_filter").val() || '';
+    var lastAppliedDispatchStatus = $("#hidden_dispatch_status_filter").val() || '';
+    var lastAppliedPaymentMethod  = $("#hidden_payment_method_filter").val() || '';
+
+    // 1. Payment Status Filter Helper
+    function updatePaymentStatusFilter(triggerSearch) {
+        var selected = [];
+        var selectedLabels = [];
+        var total = $(".payment-status-check").length;
+
+        $(".payment-status-check:checked").each(function () {
+            selected.push($(this).val());
+            var lbl = $(this).closest('label').find('span:last').text().trim();
+            selectedLabels.push(lbl);
+        });
+
+        $("#checkAllPaymentStatus").prop("checked", selected.length === total && total > 0);
+
+        var $badge = $("#paymentStatusBadge");
+        if ($badge.length) {
+            $badge.text(selected.length);
+            if (selected.length > 0 && selected.length < total) {
+                $badge.show().css("background-color", "#009688");
+                $("#paymentStatusFilterIcon").css("color", "#009688");
+                $("#paymentStatusDropdown").css("border-color", "#009688");
+                $("#paymentStatusDropdown").attr("title", "Filter active: " + selectedLabels.join(", "));
+            } else {
+                $badge.hide();
+                $("#paymentStatusFilterIcon").css("color", "#777");
+                $("#paymentStatusDropdown").css("border-color", "#ccc");
+                $("#paymentStatusDropdown").attr("title", "Filter by Payment Status (All)");
+            }
+        }
+
+        var commaSeparated = selected.join(",");
+        $("#hidden_payment_status_filter").val(commaSeparated);
+
+        if (triggerSearch) {
+            lastAppliedPaymentStatus = commaSeparated;
+            $("#searchForm").find('input[name=page]').val(1);
+            getAjaxResults();
+        }
+    }
+
+    // 2. Dispatch Status Filter Helper
+    function updateDispatchStatusFilter(triggerSearch) {
+        var selected = [];
+        var selectedLabels = [];
+        var total = $(".dispatch-status-check").length;
+
+        $(".dispatch-status-check:checked").each(function () {
+            selected.push($(this).val());
+            var lbl = $(this).closest('label').find('span:last').text().trim();
+            selectedLabels.push(lbl);
+        });
+
+        $("#checkAllDispatchStatus").prop("checked", selected.length === total && total > 0);
+
+        var $badge = $("#dispatchStatusBadge");
+        if ($badge.length) {
+            $badge.text(selected.length);
+            if (selected.length > 0 && selected.length < total) {
+                $badge.show().css("background-color", "#009688");
+                $("#dispatchStatusFilterIcon").css("color", "#009688");
+                $("#dispatchStatusDropdown").css("border-color", "#009688");
+                $("#dispatchStatusDropdown").attr("title", "Filter active: " + selectedLabels.join(", "));
+            } else {
+                $badge.hide();
+                $("#dispatchStatusFilterIcon").css("color", "#777");
+                $("#dispatchStatusDropdown").css("border-color", "#ccc");
+                $("#dispatchStatusDropdown").attr("title", "Filter by Dispatch Status (All)");
+            }
+        }
+
+        var commaSeparated = selected.join(",");
+        $("#hidden_dispatch_status_filter").val(commaSeparated);
+
+        if (triggerSearch) {
+            lastAppliedDispatchStatus = commaSeparated;
+            $("#searchForm").find('input[name=page]').val(1);
+            getAjaxResults();
+        }
+    }
+
+    // 3. Payment Method Filter Helper
+    function updatePaymentMethodFilter(triggerSearch) {
+        var selected = [];
+        var selectedLabels = [];
+        var total = $(".payment-method-check").length;
+
+        $(".payment-method-check:checked").each(function () {
+            selected.push($(this).val());
+            var lbl = $(this).closest('label').find('span:last').text().trim();
+            selectedLabels.push(lbl);
+        });
+
+        $("#checkAllPaymentMethod").prop("checked", selected.length === total && total > 0);
+
+        var $badge = $("#paymentMethodBadge");
+        if ($badge.length) {
+            $badge.text(selected.length);
+            if (selected.length > 0 && selected.length < total) {
+                $badge.show().css("background-color", "#009688");
+                $("#paymentMethodFilterIcon").css("color", "#009688");
+                $("#paymentMethodDropdown").css("border-color", "#009688");
+                $("#paymentMethodDropdown").attr("title", "Filter active: " + selectedLabels.join(", "));
+            } else {
+                $badge.hide();
+                $("#paymentMethodFilterIcon").css("color", "#777");
+                $("#paymentMethodDropdown").css("border-color", "#ccc");
+                $("#paymentMethodDropdown").attr("title", "Filter by Payment Method (All)");
+            }
+        }
+
+        var commaSeparated = selected.join(",");
+        $("#hidden_payment_method_filter").val(commaSeparated);
+
+        if (triggerSearch) {
+            lastAppliedPaymentMethod = commaSeparated;
+            $("#searchForm").find('input[name=page]').val(1);
+            getAjaxResults();
+        }
+    }
+
+    function revertPaymentStatusCheckboxes() {
+        var applied = (lastAppliedPaymentStatus || '').split(',').filter(Boolean);
+        $(".payment-status-check").each(function () {
+            $(this).prop("checked", applied.indexOf($(this).val()) !== -1);
+        });
+        var total = $(".payment-status-check").length;
+        var checked = $(".payment-status-check:checked").length;
+        $("#checkAllPaymentStatus").prop("checked", checked === total && total > 0);
+    }
+
+    function revertDispatchStatusCheckboxes() {
+        var applied = (lastAppliedDispatchStatus || '').split(',').filter(Boolean);
+        $(".dispatch-status-check").each(function () {
+            $(this).prop("checked", applied.indexOf($(this).val()) !== -1);
+        });
+        var total = $(".dispatch-status-check").length;
+        var checked = $(".dispatch-status-check:checked").length;
+        $("#checkAllDispatchStatus").prop("checked", checked === total && total > 0);
+    }
+
+    function revertPaymentMethodCheckboxes() {
+        var applied = (lastAppliedPaymentMethod || '').split(',').filter(Boolean);
+        $(".payment-method-check").each(function () {
+            $(this).prop("checked", applied.indexOf($(this).val()) !== -1);
+        });
+        var total = $(".payment-method-check").length;
+        var checked = $(".payment-method-check:checked").length;
+        $("#checkAllPaymentMethod").prop("checked", checked === total && total > 0);
+    }
+
+    function closeAllDropdownsAndRevert() {
+        if ($("#paymentStatusMenu").closest(".multicheck-dropdown").hasClass("open")) {
+            revertPaymentStatusCheckboxes();
+        }
+        if ($("#dispatchStatusMenu").closest(".multicheck-dropdown").hasClass("open")) {
+            revertDispatchStatusCheckboxes();
+        }
+        if ($("#paymentMethodMenu").closest(".multicheck-dropdown").hasClass("open")) {
+            revertPaymentMethodCheckboxes();
+        }
+        $(".multicheck-dropdown").removeClass("open");
+    }
+
+    // Common Dropdown Toggle
+    $("body").on("click", "#paymentStatusDropdown, #dispatchStatusDropdown, #paymentMethodDropdown", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var $dd = $(this).closest(".multicheck-dropdown");
+        var isOpen = $dd.hasClass("open");
+        closeAllDropdownsAndRevert();
+        if (!isOpen) {
+            $dd.addClass("open");
+        }
+    });
+
+    // Prevent clicks inside any filter menu from closing it
+    $("body").on("click", ".multicheck-dropdown .dropdown-menu", function (e) {
+        e.stopPropagation();
+    });
+
+    // Close on click outside without applying (revert changes)
+    $(document).on("click", function (e) {
+        if (!$(e.target).closest(".multicheck-dropdown").length) {
+            closeAllDropdownsAndRevert();
+        }
+    });
+
+    // Close buttons inside menus without applying (revert changes)
+    $("body").on("click", "#btnClosePaymentStatusMenu, #btnCloseDispatchStatusMenu, #btnClosePaymentMethodMenu", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        closeAllDropdownsAndRevert();
+    });
+
+    // Apply Filter buttons - Only here is search triggered!
+    $("body").on("click", "#btnApplyPaymentStatusFilter", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        $(".multicheck-dropdown").removeClass("open");
+        updatePaymentStatusFilter(true);
+    });
+
+    $("body").on("click", "#btnApplyDispatchStatusFilter", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        $(".multicheck-dropdown").removeClass("open");
+        updateDispatchStatusFilter(true);
+    });
+
+    $("body").on("click", "#btnApplyPaymentMethodFilter", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        $(".multicheck-dropdown").removeClass("open");
+        updatePaymentMethodFilter(true);
+    });
+
+    // Payment Status Checkbox Events (Local selection only, search triggers on Apply)
+    $("body").on("change", "#checkAllPaymentStatus", function () {
+        var isChecked = $(this).prop("checked");
+        $(".payment-status-check").prop("checked", isChecked);
+    });
+
+    $("body").on("click", "#clearPaymentStatus", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        $(".payment-status-check, #checkAllPaymentStatus").prop("checked", false);
+    });
+
+    $("body").on("change", ".payment-status-check", function () {
+        var total = $(".payment-status-check").length;
+        var checked = $(".payment-status-check:checked").length;
+        $("#checkAllPaymentStatus").prop("checked", checked === total && total > 0);
+    });
+
+    // Dispatch Status Checkbox Events (Local selection only, search triggers on Apply)
+    $("body").on("change", "#checkAllDispatchStatus", function () {
+        var isChecked = $(this).prop("checked");
+        $(".dispatch-status-check").prop("checked", isChecked);
+    });
+
+    $("body").on("click", "#clearDispatchStatus", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        $(".dispatch-status-check, #checkAllDispatchStatus").prop("checked", false);
+    });
+
+    $("body").on("change", ".dispatch-status-check", function () {
+        var total = $(".dispatch-status-check").length;
+        var checked = $(".dispatch-status-check:checked").length;
+        $("#checkAllDispatchStatus").prop("checked", checked === total && total > 0);
+    });
+
+    // Payment Method Checkbox Events (Local selection only, search triggers on Apply)
+    $("body").on("change", "#checkAllPaymentMethod", function () {
+        var isChecked = $(this).prop("checked");
+        $(".payment-method-check").prop("checked", isChecked);
+    });
+
+    $("body").on("click", "#clearPaymentMethod", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        $(".payment-method-check, #checkAllPaymentMethod").prop("checked", false);
+    });
+
+    $("body").on("change", ".payment-method-check", function () {
+        var total = $(".payment-method-check").length;
+        var checked = $(".payment-method-check:checked").length;
+        $("#checkAllPaymentMethod").prop("checked", checked === total && total > 0);
+    });
+
+    // Initial sync on page load
+    updatePaymentStatusFilter(false);
+    updateDispatchStatusFilter(false);
+    updatePaymentMethodFilter(false);
+
+    // Search / Date filter - Search button click
     $("body").on("click", "#btnFilter", function (e) {
         e.preventDefault();
 
-        var statusVal   = $("#payment_status_filter").val();
+        updatePaymentStatusFilter(false);
+        updateDispatchStatusFilter(false);
+        updatePaymentMethodFilter(false);
+
+        var payStatusVal   = $("#hidden_payment_status_filter").val();
+        var dispStatusVal  = $("#hidden_dispatch_status_filter").val();
+        var payMethodVal   = $("#hidden_payment_method_filter").val();
+
+        lastAppliedPaymentStatus  = payStatusVal;
+        lastAppliedDispatchStatus = dispStatusVal;
+        lastAppliedPaymentMethod  = payMethodVal;
+
         var searchVal   = $("#full_search").val();
         var fromDateVal = $("#from_date").val();
         var toDateVal   = $("#to_date").val();
 
-        $("#searchForm").find('input[name=payment_status_filter]').val(statusVal);
+        $("#searchForm").find('input[name=payment_status_filter]').val(payStatusVal);
+        $("#searchForm").find('input[name=dispatch_status_filter]').val(dispStatusVal);
+        $("#searchForm").find('input[name=payment_method_filter]').val(payMethodVal);
         $("#searchForm").find('input[name=search]').val(searchVal);
         $("#searchForm").find('input[name=from_date]').val(fromDateVal);
         $("#searchForm").find('input[name=to_date]').val(toDateVal);
@@ -59,24 +353,35 @@
     $("body").on("click", "#btnResetFilter", function (e) {
         e.preventDefault();
 
-        $("#payment_status_filter").val('');
+        // Reset Payment Status (all unchecked -> All)
+        $(".payment-status-check, #checkAllPaymentStatus").prop("checked", false);
+        updatePaymentStatusFilter(false);
+        lastAppliedPaymentStatus = "";
+
+        // Reset Dispatch Status (all unchecked -> All)
+        $(".dispatch-status-check, #checkAllDispatchStatus").prop("checked", false);
+        updateDispatchStatusFilter(false);
+        lastAppliedDispatchStatus = "";
+
+        // Reset Payment Method (all unchecked -> All)
+        $(".payment-method-check, #checkAllPaymentMethod").prop("checked", false);
+        updatePaymentMethodFilter(false);
+        lastAppliedPaymentMethod = "";
+
         $("#full_search").val('');
         $("#from_date").val('');
         $("#to_date").val('');
 
-        $("#searchForm").find('input[name=payment_status_filter]').val('');
         $("#searchForm").find('input[name=search]').val('');
         $("#searchForm").find('input[name=from_date]').val('');
         $("#searchForm").find('input[name=to_date]').val('');
+        $("#searchForm").find('input[name=payment_status_filter]').val('');
+        $("#searchForm").find('input[name=dispatch_status_filter]').val('');
+        $("#searchForm").find('input[name=payment_method_filter]').val('');
         $("#searchForm").find('input[name=page]').val(1);
         $("#searchForm").find('input[name=export]').val('');
 
         getAjaxResults();
-    });
-
-    // Auto-trigger filter on payment status change
-    $("body").on("change", "#payment_status_filter", function (e) {
-        $("#btnFilter").trigger('click');
     });
 
     // Handle Select All / master checkbox

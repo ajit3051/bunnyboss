@@ -1,6 +1,6 @@
 <?php
 ob_start();
-include_once("../include/config.php"); 
+include_once("../include/config.php");
 if (defined('_FRONTEND_PATH')) {
     require_once(_FRONTEND_PATH . "include/courier_service.php");
 } else {
@@ -72,18 +72,89 @@ $where = "WHERE 1=1";
 $params = '';
 $fields = array();
 
-if ($status_filter === 'paid') {
-    $where .= " AND (O.payment_status = 'paid' OR O.order_status = 'paid')";
-} elseif ($status_filter === 'partial_paid') {
-    $where .= " AND O.payment_status = 'partial_paid'";
-} elseif ($status_filter === 'pending') {
-    $where .= " AND O.payment_status = 'pending'";
-} elseif ($status_filter === 'dispatched') {
-    $where .= " AND (O.dispatch_status IN ('dispatched', 'shadowfax', 'delhivery') OR (O.delhivery_awb IS NOT NULL AND O.delhivery_awb != '') OR (O.courier_awb IS NOT NULL AND O.courier_awb != ''))";
-} elseif ($status_filter === 'dispatch_pending') {
-    $where .= " AND (O.dispatch_status = 'pending' AND (O.delhivery_awb IS NULL OR O.delhivery_awb = '') AND (O.courier_awb IS NULL OR O.courier_awb = ''))";
-} else {
-    $where .= " AND (O.payment_status IN ('paid', 'partial_paid') OR O.order_status = 'paid')";
+$status_filter = isset($_POST['payment_status_filter']) ? $_POST['payment_status_filter'] : '';
+$selected_statuses = [];
+if (is_array($status_filter)) {
+    $selected_statuses = array_filter(array_map('trim', $status_filter));
+} elseif (is_string($status_filter) && trim($status_filter) !== '') {
+    $selected_statuses = array_filter(array_map('trim', explode(',', $status_filter)));
+}
+
+if (!empty($selected_statuses)) {
+    $statusConditions = [];
+    foreach ($selected_statuses as $st) {
+        if ($st === 'paid') {
+            $statusConditions[] = "(O.payment_status = 'paid' OR O.order_status = 'paid')";
+        } elseif ($st === 'partial_paid') {
+            $statusConditions[] = "O.payment_status IN ('partial_paid', 'shipping_paid', 'shipping_and_gst_paid')";
+        } elseif ($st === 'pending') {
+            $statusConditions[] = "O.payment_status = 'pending'";
+        } elseif ($st === 'dispatched') {
+            $statusConditions[] = "(O.dispatch_status IN ('dispatched', 'shadowfax', 'delhivery') OR (O.delhivery_awb IS NOT NULL AND O.delhivery_awb != '') OR (O.courier_awb IS NOT NULL AND O.courier_awb != '') OR (OI.dispatch_status IN ('dispatched', 'shadowfax', 'delhivery')) OR (OI.courier_awb IS NOT NULL AND OI.courier_awb != ''))";
+        } elseif ($st === 'dispatch_pending') {
+            $statusConditions[] = "((O.dispatch_status = 'pending' OR O.dispatch_status IS NULL) AND (O.delhivery_awb IS NULL OR O.delhivery_awb = '') AND (O.courier_awb IS NULL OR O.courier_awb = '') AND (OI.dispatch_status = 'pending' OR OI.dispatch_status IS NULL) AND (OI.courier_awb IS NULL OR OI.courier_awb = ''))";
+        }
+    }
+    if (!empty($statusConditions)) {
+        $where .= " AND (" . implode(" OR ", $statusConditions) . ")";
+    }
+}
+
+// Dispatch Status Filter
+$dispatch_filter = isset($_POST['dispatch_status_filter']) ? $_POST['dispatch_status_filter'] : '';
+$selected_dispatch = [];
+if (is_array($dispatch_filter)) {
+    $selected_dispatch = array_filter(array_map('trim', $dispatch_filter));
+} elseif (is_string($dispatch_filter) && trim($dispatch_filter) !== '') {
+    $selected_dispatch = array_filter(array_map('trim', explode(',', $dispatch_filter)));
+}
+
+if (!empty($selected_dispatch)) {
+    $dispatchConditions = [];
+    foreach ($selected_dispatch as $dst) {
+        $dst = strtolower(trim($dst));
+        if ($dst === 'pending') {
+            $dispatchConditions[] = "((O.dispatch_status = 'pending' OR O.dispatch_status IS NULL) AND (O.delhivery_awb IS NULL OR O.delhivery_awb = '') AND (O.courier_awb IS NULL OR O.courier_awb = '') AND (OI.dispatch_status = 'pending' OR OI.dispatch_status IS NULL) AND (OI.courier_awb IS NULL OR OI.courier_awb = ''))";
+        } elseif ($dst === 'dispatched') {
+            $dispatchConditions[] = "(O.dispatch_status IN ('dispatched', 'dispatch') OR OI.dispatch_status IN ('dispatched', 'dispatch') OR (O.delhivery_awb IS NOT NULL AND O.delhivery_awb != '') OR (O.courier_awb IS NOT NULL AND O.courier_awb != '') OR (OI.courier_awb IS NOT NULL AND OI.courier_awb != ''))";
+        } elseif ($dst === 'shadowfax') {
+            $dispatchConditions[] = "(O.dispatch_status = 'shadowfax' OR OI.dispatch_status = 'shadowfax')";
+        } elseif ($dst === 'out_of_stock') {
+            $dispatchConditions[] = "(O.dispatch_status IN ('out_of_stock', 'out of stock') OR OI.dispatch_status IN ('out_of_stock', 'out of stock'))";
+        } elseif ($dst === 'failed') {
+            $dispatchConditions[] = "(O.dispatch_status = 'failed' OR OI.dispatch_status = 'failed')";
+        }
+    }
+    if (!empty($dispatchConditions)) {
+        $where .= " AND (" . implode(" OR ", $dispatchConditions) . ")";
+    }
+}
+
+// Payment Method Filter
+$paymethod_filter = isset($_REQUEST['payment_method_filter']) ? $_REQUEST['payment_method_filter'] : '';
+$selected_paymethods = [];
+if (is_array($paymethod_filter)) {
+    $selected_paymethods = array_filter(array_map('trim', $paymethod_filter));
+} elseif (is_string($paymethod_filter) && trim($paymethod_filter) !== '') {
+    $selected_paymethods = array_filter(array_map('trim', explode(',', $paymethod_filter)));
+}
+
+if (!empty($selected_paymethods) && count($selected_paymethods) < 2) {
+    $methodConditions = [];
+    foreach ($selected_paymethods as $pm) {
+        $pm = strtolower(trim($pm));
+        if ($pm === 'cod') {
+            $methodConditions[] = "LOWER(O.payment_method) = 'cod'";
+        } elseif ($pm === 'razorpay') {
+            $methodConditions[] = "LOWER(O.payment_method) IN ('razorpay', 'online')";
+        } else {
+            $escaped_pm = $db->real_escape_string($pm);
+            $methodConditions[] = "LOWER(O.payment_method) = '$escaped_pm'";
+        }
+    }
+    if (!empty($methodConditions)) {
+        $where .= " AND (" . implode(" OR ", $methodConditions) . ")";
+    }
 }
 
 if ($search !== '') {
@@ -267,6 +338,17 @@ if ($totalRecordsWithLimit > 0) {
 
         $dispatchTooltip = !empty($row['item_dispatch_error']) ? htmlspecialchars($row['item_dispatch_error']) : (!empty($row['dispatch_error']) ? htmlspecialchars($row['dispatch_error']) : 'Click to change dispatch status');
 
+        $payMethodRaw = strtolower(trim($row['payment_method'] ?? ''));
+        if ($payMethodRaw === 'cod') {
+            $payMethodDisplay = '<span class="label label-primary" style="padding: 4px 8px; font-size: 11px; font-weight: bold;"><i class="fa fa-money"></i> COD</span>';
+        } elseif ($payMethodRaw === 'razorpay' || $payMethodRaw === 'online') {
+            $payMethodDisplay = '<span class="label label-success" style="padding: 4px 8px; font-size: 11px; font-weight: bold;"><i class="fa fa-credit-card"></i> RAZORPAY</span>';
+        } elseif ($payMethodRaw !== '') {
+            $payMethodDisplay = '<span class="label label-info" style="padding: 4px 8px; font-size: 11px; font-weight: bold;">' . strtoupper(htmlspecialchars($payMethodRaw)) . '</span>';
+        } else {
+            $payMethodDisplay = '<span class="text-muted">-</span>';
+        }
+
         $html .= '<tr>
             <td>
                 <div class="checkbox checkbox-info">
@@ -284,6 +366,9 @@ if ($totalRecordsWithLimit > 0) {
             <td>
                 <span class="label ' . $dispatchBadgeClass . ' dispatch-status-trigger" data-order-id="' . $row['order_id'] . '" data-item-id="' . $itemIdVal . '" data-status="' . htmlspecialchars($dispatchStatusRaw) . '" onclick="event.stopPropagation(); openDispatchModal(this);" style="padding: 4px 8px; font-size: 11px; font-weight: bold; cursor: pointer;" title="' . $dispatchTooltip . '"><i class="fa ' . $dispatchIcon . '"></i> ' . $dispatchStatusText . ' <i class="fa fa-caret-down" style="margin-left: 2px;"></i></span>
             </td>
+            <td>
+                ' . $payMethodDisplay . '
+            </td>
              <td>' . htmlspecialchars($row['order_id']) . '</td>
              <td><span class="label label-primary" style="font-family: monospace; font-size: 11px; letter-spacing: 0.5px; padding: 3px 6px;">' . htmlspecialchars($tx_id) . '</span></td>
              <td>
@@ -300,9 +385,9 @@ if ($totalRecordsWithLimit > 0) {
             <td>' . (!empty($row['created_at']) && $row['created_at'] !== '0000-00-00 00:00:00' ? date('d/m/Y h:i A', strtotime($row['created_at'])) : '') . '</td>
             <td>' . htmlspecialchars($row['street_address']) . '</td>
             <td>' . htmlspecialchars($row['city']) . '</td>
-            <td>' . ((isset($row['is_pincode_serviceable']) && (int)$row['is_pincode_serviceable'] === 0) 
-                ? '<span class="label label-danger" style="padding: 3px 6px; font-size: 11px;" title="Pincode Not Found in Courier Network (0)"><i class="fa fa-times"></i> ' . htmlspecialchars($row['postcode']) . ' (0)</span>' 
-                : '<span class="label label-success" style="padding: 3px 6px; font-size: 11px;" title="Pincode Found in Courier Network (1)"><i class="fa fa-check"></i> ' . htmlspecialchars($row['postcode']) . ' (1)</span>') . '</td>
+            <td>' . ((isset($row['is_pincode_serviceable']) && (int)$row['is_pincode_serviceable'] === 0)
+            ? '<span class="label label-danger" style="padding: 3px 6px; font-size: 11px;" title="Pincode Not Found in Courier Network (0)"><i class="fa fa-times"></i> ' . htmlspecialchars($row['postcode']) . ' (0)</span>'
+            : '<span class="label label-success" style="padding: 3px 6px; font-size: 11px;" title="Pincode Found in Courier Network (1)"><i class="fa fa-check"></i> ' . htmlspecialchars($row['postcode']) . ' (1)</span>') . '</td>
             <td>' . htmlspecialchars($row['phone']) . '</td>
         </tr>';
     }
@@ -310,7 +395,7 @@ if ($totalRecordsWithLimit > 0) {
     $data['pagination'] = include_pagination_component($page, $recordsPerPage, $totalRecords);
 } else {
     $html = '<tr>
-      <td colspan="20"> No Recently added</td>
+      <td colspan="21"> No Recently added</td>
    </tr>';
     $data['pagination'] = '';
 }

@@ -31,3 +31,328 @@
 [2026-09-24 23:23:44] [SUCCESS] Action: send_sms_disabled | Mobile: 98******10 | Status: SUCCESS | Response: SMS dispatch disabled in config | Error: None
 [2026-09-24 23:27:24] [SUCCESS] Action: send_sms_disabled | Mobile: 70******02 | Status: SUCCESS | Response: SMS dispatch disabled in config | Error: None
 [2026-09-24 23:55:47] [SUCCESS] Action: send_sms_disabled | Mobile: 98******10 | Status: SUCCESS | Response: SMS dispatch disabled in config | Error: None
+[2026-09-25 00:12:10] [FAILURE] Action: send_sms | Mobile: 70******02 | Status: FAILURE | Response:  | Error: cURL Error: Failed to connect to hindit.co.in port 80 after 1941 ms: Couldn't connect to server
+[2026-09-25 00:16:45] [SUCCESS] Action: send_sms | Mobile: 70******02 | Status: SUCCESS | Response: <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" >
+<head><title>
+	Push SMS - API
+</title></head>
+<body>
+
+    <form name="form1" method="get" action="./pushsms.aspx?loginID=T1BUNNYB&amp;password=bunny1234&amp;mobile=7053408802&amp;text=Hi+Murlidhar%2c+your+order+%232470+has+been+successfully+placed+with+BunnyBoss.&amp;senderid=BUNNYB&amp;route_id=2&amp;Unicode=0&amp;IP=x.x.x.x&amp;Template_id=1777179005799027454" id="form1">
+<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="/wEPDwUJNDAwNzE4ODQ1D2QWAgIDD2QWCgIBDw8WAh4EVGV4dAUgWW91ciBleGlzdGluZyBzbXMgYmFsYW5jZSBpcyA6IDJkZAIFDw8WAh8ABRxWYWxpZCBtb2JpbGUgbnVtYmVycyBhcmUgOiAxZGQCBw8PFgIfAAUcTnVtYmVyIG9mIG1lc3NhZ2VzIGFyZSA6ICAgMWRkAgkPDxYCHwAFGlRoZSBtZXNzYWdlcyBoYXMgYmVlbiBzZW50ZGQCCw8PFgIfAAUbWW91ciBjdXJyZW50IGJhbGFuY2UgaXMgOiAxZGRkkEhfsnCPnnB+BrTlVL2/7mV/QWAnqcGU28say79FQzw=" />
+
+<input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="A8BB6748" />
+    <div>
+      <table cellpadding="1" cellspacing ="1" border="0">
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label1">Your existing sms balance is : 2</span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label2"></span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label3">Valid mobile numbers are : 1</span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label4">Number of messages are :   1</span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label5">The messages has been sent</span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label6">Your current balance is : 1</span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label7"></span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label8"></span></td></tr>
+     </table>
+    </div>
+  </form>
+</body>
+</html> | Error: None
+[2026-09-25 00:18:38] [SUCCESS] Action: send_sms | Mobile: 70******02 | Status: SUCCESS | Response: <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" >
+<head><title>
+	Push SMS - API
+</title></head>
+<body>
+
+    <form name="form1" method="get" action="./pushsms.aspx?loginID=T1BUNNYB&amp;password=bunny1234&amp;mobile=7053408802&amp;text=BunnyBoss%3a+Your+verification+OTP+is+704389.+Valid+for+5+minutes.+Please+do+not+share+this+OTP+with+anyone.&amp;senderid=BUNNYB&amp;route_id=2&amp;Unicode=0&amp;IP=%3a%3a1&amp;Template_id=1777179005799027454" id="form1">
+<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="/wEPDwUJNDAwNzE4ODQ1D2QWAgIDD2QWCgIBDw8WAh4EVGV4dAUgWW91ciBleGlzdGluZyBzbXMgYmFsYW5jZSBpcyA6IDFkZAIFDw8WAh8ABRxWYWxpZCBtb2JpbGUgbnVtYmVycyBhcmUgOiAxZGQCBw8PFgIfAAUcTnVtYmVyIG9mIG1lc3NhZ2VzIGFyZSA6ICAgMWRkAgkPDxYCHwAFGlRoZSBtZXNzYWdlcyBoYXMgYmVlbiBzZW50ZGQCCw8PFgIfAAUbWW91ciBjdXJyZW50IGJhbGFuY2UgaXMgOiAwZGRkg0MioX+D/+8yUn6oD+2F4X2VF14LkQ1BkrZp0addCoc=" />
+
+<input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="A8BB6748" />
+    <div>
+      <table cellpadding="1" cellspacing ="1" border="0">
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label1">Your existing sms balance is : 1</span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label2"></span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label3">Valid mobile numbers are : 1</span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label4">Number of messages are :   1</span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label5">The messages has been sent</span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label6">Your current balance is : 0</span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label7"></span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label8"></span></td></tr>
+     </table>
+    </div>
+  </form>
+</body>
+</html> | Error: None
+[2026-09-25 00:19:24] [SUCCESS] Action: send_sms | Mobile: 70******02 | Status: SUCCESS | Response: <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" >
+<head><title>
+	Push SMS - API
+</title></head>
+<body>
+
+    <form name="form1" method="get" action="./pushsms.aspx?loginID=T1BUNNYB&amp;password=bunny1234&amp;mobile=7053408802&amp;text=Hi+Murlidhar+Sharma%2c+your+order+%232471+has+been+successfully+placed+with+BunnyBoss.&amp;senderid=BUNNYB&amp;route_id=2&amp;Unicode=0&amp;IP=%3a%3a1&amp;Template_id=1777179005799027454" id="form1">
+<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="/wEPDwUJNDAwNzE4ODQ1D2QWAgIDD2QWBAIBDw8WAh4EVGV4dAUgWW91ciBleGlzdGluZyBzbXMgYmFsYW5jZSBpcyA6IDBkZAIDDw8WAh8ABSNZb3UgYXJlIGhhdmluZyBpbnN1ZmZpY2llbnQgYmFsYW5jZWRkZBvgP47oWKFA436f1tbJDhYWOv/eOtZsGJ+iR13vrmnN" />
+
+<input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="A8BB6748" />
+    <div>
+      <table cellpadding="1" cellspacing ="1" border="0">
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label1">Your existing sms balance is : 0</span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label2">You are having insufficient balance</span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label3"></span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label4"></span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label5"></span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label6"></span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label7"></span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label8"></span></td></tr>
+     </table>
+    </div>
+  </form>
+</body>
+</html> | Error: None
+[2026-09-25 00:23:10] [FAILURE] Action: send_sms | Mobile: 70******02 | Status: FAILURE | Response: <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" >
+<head><title>
+	Push SMS - API
+</title></head>
+<body>
+
+    <form name="form1" method="get" action="./pushsms.aspx?loginID=T1BUNNYB&amp;password=bunny1234&amp;mobile=7053408802&amp;text=Hi+Murlidhar+Sharma%2c+your+order+%232471+has+been+successfully+placed+with+BunnyBoss.&amp;senderid=BUNNYB&amp;route_id=2&amp;Unicode=0&amp;IP=x.x.x.x&amp;Template_id=1777179005799027454" id="form1">
+<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="/wEPDwUJNDAwNzE4ODQ1D2QWAgIDD2QWBAIBDw8WAh4EVGV4dAUgWW91ciBleGlzdGluZyBzbXMgYmFsYW5jZSBpcyA6IDBkZAIDDw8WAh8ABSNZb3UgYXJlIGhhdmluZyBpbnN1ZmZpY2llbnQgYmFsYW5jZWRkZBvgP47oWKFA436f1tbJDhYWOv/eOtZsGJ+iR13vrmnN" />
+
+<input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="A8BB6748" />
+    <div>
+      <table cellpadding="1" cellspacing ="1" border="0">
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label1">Your existing sms balance is : 0</span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label2">You are having insufficient balance</span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label3"></span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label4"></span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label5"></span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label6"></span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label7"></span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label8"></span></td></tr>
+     </table>
+    </div>
+  </form>
+</body>
+</html> | Error: INSUFFICIENT_SMS_BALANCE
+[2026-09-25 00:24:16] [FAILURE] Action: send_sms | Mobile: 70******02 | Status: FAILURE | Response: <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" >
+<head><title>
+	Push SMS - API
+</title></head>
+<body>
+
+    <form name="form1" method="get" action="./pushsms.aspx?loginID=T1BUNNYB&amp;password=bunny1234&amp;mobile=7053408802&amp;text=Hi+Murlidhar+Sharma%2c+your+order+%232472+has+been+successfully+placed+with+BunnyBoss.&amp;senderid=BUNNYB&amp;route_id=2&amp;Unicode=0&amp;IP=%3a%3a1&amp;Template_id=1777179005799027454" id="form1">
+<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="/wEPDwUJNDAwNzE4ODQ1D2QWAgIDD2QWBAIBDw8WAh4EVGV4dAUgWW91ciBleGlzdGluZyBzbXMgYmFsYW5jZSBpcyA6IDBkZAIDDw8WAh8ABSNZb3UgYXJlIGhhdmluZyBpbnN1ZmZpY2llbnQgYmFsYW5jZWRkZBvgP47oWKFA436f1tbJDhYWOv/eOtZsGJ+iR13vrmnN" />
+
+<input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="A8BB6748" />
+    <div>
+      <table cellpadding="1" cellspacing ="1" border="0">
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label1">Your existing sms balance is : 0</span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label2">You are having insufficient balance</span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label3"></span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label4"></span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label5"></span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label6"></span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label7"></span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label8"></span></td></tr>
+     </table>
+    </div>
+  </form>
+</body>
+</html> | Error: INSUFFICIENT_SMS_BALANCE
+[2026-09-25 00:26:21] [FAILURE] Action: send_sms | Mobile: 70******02 | Status: FAILURE | Response: <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" >
+<head><title>
+	Push SMS - API
+</title></head>
+<body>
+
+    <form name="form1" method="get" action="./pushsms.aspx?loginID=T1BUNNYB&amp;password=bunny1234&amp;mobile=7053408802&amp;text=BunnyBoss%3a+Your+verification+OTP+is+206808.+Valid+for+5+minutes.+Please+do+not+share+this+OTP+with+anyone.&amp;senderid=BUNNYB&amp;route_id=2&amp;Unicode=0&amp;IP=%3a%3a1&amp;Template_id=1777179005799027454" id="form1">
+<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="/wEPDwUJNDAwNzE4ODQ1D2QWAgIDD2QWBAIBDw8WAh4EVGV4dAUgWW91ciBleGlzdGluZyBzbXMgYmFsYW5jZSBpcyA6IDBkZAIDDw8WAh8ABSNZb3UgYXJlIGhhdmluZyBpbnN1ZmZpY2llbnQgYmFsYW5jZWRkZBvgP47oWKFA436f1tbJDhYWOv/eOtZsGJ+iR13vrmnN" />
+
+<input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="A8BB6748" />
+    <div>
+      <table cellpadding="1" cellspacing ="1" border="0">
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label1">Your existing sms balance is : 0</span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label2">You are having insufficient balance</span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label3"></span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label4"></span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label5"></span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label6"></span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label7"></span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label8"></span></td></tr>
+     </table>
+    </div>
+  </form>
+</body>
+</html> | Error: INSUFFICIENT_SMS_BALANCE
+[2026-09-25 18:55:58] [SUCCESS] Action: send_sms | Mobile: 70******02 | Status: SUCCESS | Response: <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" >
+<head><title>
+	Push SMS - API
+</title></head>
+<body>
+
+    <form name="form1" method="get" action="./pushsms.aspx?loginID=T1BUNNYB&amp;password=bunny1234&amp;mobile=7053408802&amp;text=BunnyBoss%3a+Your+verification+OTP+is+713458.+Valid+for+5+minutes.+Please+do+not+share+this+OTP+with+anyone.&amp;senderid=BUNNYB&amp;route_id=2&amp;Unicode=0&amp;IP=%3a%3a1&amp;Template_id=1777179005799027454" id="form1">
+<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="/wEPDwUJNDAwNzE4ODQ1D2QWAgIDD2QWCgIBDw8WAh4EVGV4dAUjWW91ciBleGlzdGluZyBzbXMgYmFsYW5jZSBpcyA6IDc0NjNkZAIFDw8WAh8ABRxWYWxpZCBtb2JpbGUgbnVtYmVycyBhcmUgOiAxZGQCBw8PFgIfAAUcTnVtYmVyIG9mIG1lc3NhZ2VzIGFyZSA6ICAgMWRkAgkPDxYCHwAFGlRoZSBtZXNzYWdlcyBoYXMgYmVlbiBzZW50ZGQCCw8PFgIfAAUeWW91ciBjdXJyZW50IGJhbGFuY2UgaXMgOiA3NDYyZGRkzMHkRWtNyuLILpCriIImE8VFjr74myh0N5SjBAVaM5I=" />
+
+<input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="A8BB6748" />
+    <div>
+      <table cellpadding="1" cellspacing ="1" border="0">
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label1">Your existing sms balance is : 7463</span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label2"></span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label3">Valid mobile numbers are : 1</span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label4">Number of messages are :   1</span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label5">The messages has been sent</span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label6">Your current balance is : 7462</span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label7"></span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label8"></span></td></tr>
+     </table>
+    </div>
+  </form>
+</body>
+</html> | Error: None
+[2026-09-25 22:08:27] [SUCCESS] Action: send_sms | Mobile: 70******02 | Status: SUCCESS | Response: <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" >
+<head><title>
+	Push SMS - API
+</title></head>
+<body>
+
+    <form name="form1" method="get" action="./pushsms.aspx?loginID=T1BUNNYB&amp;password=bunny1234&amp;mobile=7053408802&amp;text=BunnyBoss%3a+Your+verification+OTP+is+751575.+Valid+for+5+minutes.+Please+do+not+share+this+OTP+with+anyone.&amp;senderid=BUNNYB&amp;route_id=2&amp;Unicode=0&amp;IP=%3a%3a1&amp;Template_id=1777179005799027454" id="form1">
+<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="/wEPDwUJNDAwNzE4ODQ1D2QWAgIDD2QWCgIBDw8WAh4EVGV4dAUjWW91ciBleGlzdGluZyBzbXMgYmFsYW5jZSBpcyA6IDc0NTBkZAIFDw8WAh8ABRxWYWxpZCBtb2JpbGUgbnVtYmVycyBhcmUgOiAxZGQCBw8PFgIfAAUcTnVtYmVyIG9mIG1lc3NhZ2VzIGFyZSA6ICAgMWRkAgkPDxYCHwAFGlRoZSBtZXNzYWdlcyBoYXMgYmVlbiBzZW50ZGQCCw8PFgIfAAUeWW91ciBjdXJyZW50IGJhbGFuY2UgaXMgOiA3NDQ5ZGRkd9D0ctj3TOHXPakEHn2HwflxBvnCLEQ98VY0bbIK7X0=" />
+
+<input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="A8BB6748" />
+    <div>
+      <table cellpadding="1" cellspacing ="1" border="0">
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label1">Your existing sms balance is : 7450</span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label2"></span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label3">Valid mobile numbers are : 1</span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label4">Number of messages are :   1</span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label5">The messages has been sent</span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label6">Your current balance is : 7449</span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label7"></span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label8"></span></td></tr>
+     </table>
+    </div>
+  </form>
+</body>
+</html> | Error: None
+[2026-09-25 22:08:57] [SUCCESS] Action: send_sms | Mobile: 70******02 | Status: SUCCESS | Response: <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" >
+<head><title>
+	Push SMS - API
+</title></head>
+<body>
+
+    <form name="form1" method="get" action="./pushsms.aspx?loginID=T1BUNNYB&amp;password=bunny1234&amp;mobile=7053408802&amp;text=Hi+Murlidhar+Sharma%2c+your+order+%232473+has+been+successfully+placed+with+BunnyBoss.&amp;senderid=BUNNYB&amp;route_id=2&amp;Unicode=0&amp;IP=%3a%3a1&amp;Template_id=1777179005799027454" id="form1">
+<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="/wEPDwUJNDAwNzE4ODQ1D2QWAgIDD2QWCgIBDw8WAh4EVGV4dAUjWW91ciBleGlzdGluZyBzbXMgYmFsYW5jZSBpcyA6IDc0NDlkZAIFDw8WAh8ABRxWYWxpZCBtb2JpbGUgbnVtYmVycyBhcmUgOiAxZGQCBw8PFgIfAAUcTnVtYmVyIG9mIG1lc3NhZ2VzIGFyZSA6ICAgMWRkAgkPDxYCHwAFGlRoZSBtZXNzYWdlcyBoYXMgYmVlbiBzZW50ZGQCCw8PFgIfAAUeWW91ciBjdXJyZW50IGJhbGFuY2UgaXMgOiA3NDQ4ZGRkInnddE1I0hNf7DPMWhLcfOAicJiDvAntCEIlfmOXbJ0=" />
+
+<input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="A8BB6748" />
+    <div>
+      <table cellpadding="1" cellspacing ="1" border="0">
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label1">Your existing sms balance is : 7449</span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label2"></span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label3">Valid mobile numbers are : 1</span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label4">Number of messages are :   1</span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label5">The messages has been sent</span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label6">Your current balance is : 7448</span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label7"></span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label8"></span></td></tr>
+     </table>
+    </div>
+  </form>
+</body>
+</html> | Error: None
+[2026-09-25 22:23:11] [SUCCESS] Action: send_sms | Mobile: 70******02 | Status: SUCCESS | Response: <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" >
+<head><title>
+	Push SMS - API
+</title></head>
+<body>
+
+    <form name="form1" method="get" action="./pushsms.aspx?loginID=T1BUNNYB&amp;password=bunny1234&amp;mobile=7053408802&amp;text=Hi+Murlidhar+Sharma%2c+your+order+%232473+has+been+successfully+placed+with+BunnyBoss.&amp;senderid=BUNNYB&amp;route_id=2&amp;Unicode=0&amp;IP=x.x.x.x&amp;Template_id=1777179005799027455" id="form1">
+<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="/wEPDwUJNDAwNzE4ODQ1D2QWAgIDD2QWCgIBDw8WAh4EVGV4dAUjWW91ciBleGlzdGluZyBzbXMgYmFsYW5jZSBpcyA6IDc0NDhkZAIFDw8WAh8ABRxWYWxpZCBtb2JpbGUgbnVtYmVycyBhcmUgOiAxZGQCBw8PFgIfAAUcTnVtYmVyIG9mIG1lc3NhZ2VzIGFyZSA6ICAgMWRkAgkPDxYCHwAFGlRoZSBtZXNzYWdlcyBoYXMgYmVlbiBzZW50ZGQCCw8PFgIfAAUeWW91ciBjdXJyZW50IGJhbGFuY2UgaXMgOiA3NDQ3ZGRk+4S8dk8oNrcxI3sGHTJo8mSR7KU0qd6glXRV8Ytt9jQ=" />
+
+<input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="A8BB6748" />
+    <div>
+      <table cellpadding="1" cellspacing ="1" border="0">
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label1">Your existing sms balance is : 7448</span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label2"></span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label3">Valid mobile numbers are : 1</span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label4">Number of messages are :   1</span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label5">The messages has been sent</span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label6">Your current balance is : 7447</span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label7"></span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label8"></span></td></tr>
+     </table>
+    </div>
+  </form>
+</body>
+</html> | Error: None
+[2026-09-25 22:25:01] [SUCCESS] Action: send_sms | Mobile: 70******02 | Status: SUCCESS | Response: <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" >
+<head><title>
+	Push SMS - API
+</title></head>
+<body>
+
+    <form name="form1" method="get" action="./pushsms.aspx?loginID=T1BUNNYB&amp;password=bunny1234&amp;mobile=7053408802&amp;text=Hi+Murlidhar+Sharma%2c+your+order+%232474+has+been+successfully+placed+with+BunnyBoss.&amp;senderid=BUNNYB&amp;route_id=2&amp;Unicode=0&amp;IP=%3a%3a1&amp;Template_id=1777179005799027455" id="form1">
+<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="/wEPDwUJNDAwNzE4ODQ1D2QWAgIDD2QWCgIBDw8WAh4EVGV4dAUjWW91ciBleGlzdGluZyBzbXMgYmFsYW5jZSBpcyA6IDc0NDdkZAIFDw8WAh8ABRxWYWxpZCBtb2JpbGUgbnVtYmVycyBhcmUgOiAxZGQCBw8PFgIfAAUcTnVtYmVyIG9mIG1lc3NhZ2VzIGFyZSA6ICAgMWRkAgkPDxYCHwAFGlRoZSBtZXNzYWdlcyBoYXMgYmVlbiBzZW50ZGQCCw8PFgIfAAUeWW91ciBjdXJyZW50IGJhbGFuY2UgaXMgOiA3NDQ2ZGRk6zDjOGeZ7cRJIZAGG5aIwpSD6Lx1ceFbyFM/CTe2DjE=" />
+
+<input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="A8BB6748" />
+    <div>
+      <table cellpadding="1" cellspacing ="1" border="0">
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label1">Your existing sms balance is : 7447</span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label2"></span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label3">Valid mobile numbers are : 1</span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label4">Number of messages are :   1</span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label5">The messages has been sent</span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label6">Your current balance is : 7446</span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label7"></span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label8"></span></td></tr>
+     </table>
+    </div>
+  </form>
+</body>
+</html> | Error: None
+[2026-09-25 22:28:47] [SUCCESS] Action: send_sms | Mobile: 70******02 | Status: SUCCESS | Response: <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" >
+<head><title>
+	Push SMS - API
+</title></head>
+<body>
+
+    <form name="form1" method="get" action="./pushsms.aspx?loginID=T1BUNNYB&amp;password=bunny1234&amp;mobile=7053408802&amp;text=Hi+Murlidhar+Sharma%2c+your+order+%232475+has+been+successfully+placed+with+BunnyBoss.&amp;senderid=BUNNYB&amp;route_id=2&amp;Unicode=0&amp;IP=%3a%3a1&amp;Template_id=1777178998165829019" id="form1">
+<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="/wEPDwUJNDAwNzE4ODQ1D2QWAgIDD2QWCgIBDw8WAh4EVGV4dAUjWW91ciBleGlzdGluZyBzbXMgYmFsYW5jZSBpcyA6IDc0NDZkZAIFDw8WAh8ABRxWYWxpZCBtb2JpbGUgbnVtYmVycyBhcmUgOiAxZGQCBw8PFgIfAAUcTnVtYmVyIG9mIG1lc3NhZ2VzIGFyZSA6ICAgMWRkAgkPDxYCHwAFGlRoZSBtZXNzYWdlcyBoYXMgYmVlbiBzZW50ZGQCCw8PFgIfAAUeWW91ciBjdXJyZW50IGJhbGFuY2UgaXMgOiA3NDQ1ZGRkNOXIeVhDAz/cgXhcBQsVFMYy+LpRn1Q84C3ELOx5djw=" />
+
+<input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="A8BB6748" />
+    <div>
+      <table cellpadding="1" cellspacing ="1" border="0">
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label1">Your existing sms balance is : 7446</span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label2"></span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label3">Valid mobile numbers are : 1</span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label4">Number of messages are :   1</span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label5">The messages has been sent</span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label6">Your current balance is : 7445</span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label7"></span></td></tr>
+        <tr><td  style="font-family:Verdana;font-size:11px"><span id="Label8"></span></td></tr>
+     </table>
+    </div>
+  </form>
+</body>
+</html> | Error: None
