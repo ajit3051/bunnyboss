@@ -243,6 +243,18 @@ if ($is_logged_in):
                                             <i class="icon-eye mr-1"></i> Details
                                         </button>
                                         <?php if ($can_cancel): ?>
+                                            <button type="button" class="btn btn-outline-secondary btn-sm btn-change-order-address px-3" 
+                                                    data-order-id="<?= $ord['order_id'] ?>" 
+                                                    data-first-name="<?= htmlspecialchars($ord['first_name'] ?? '') ?>"
+                                                    data-last-name="<?= htmlspecialchars($ord['last_name'] ?? '') ?>"
+                                                    data-phone="<?= htmlspecialchars($ord['phone'] ?? '') ?>"
+                                                    data-street="<?= htmlspecialchars($ord['street_address'] ?? '') ?>"
+                                                    data-city="<?= htmlspecialchars($ord['city'] ?? '') ?>"
+                                                    data-state="<?= htmlspecialchars($ord['state'] ?? '') ?>"
+                                                    data-postcode="<?= htmlspecialchars($ord['postcode'] ?? '') ?>"
+                                                    style="border-radius: 20px; font-weight: 600;">
+                                                <i class="icon-map-marker mr-1"></i> Address
+                                            </button>
                                             <button type="button" class="btn btn-outline-danger btn-sm btn-cancel-order px-3" 
                                                     data-order-id="<?= $ord['order_id'] ?>" 
                                                     data-pay-status="<?= $pay_status_raw ?>"

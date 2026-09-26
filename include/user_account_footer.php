@@ -196,6 +196,92 @@ if ($is_logged_in): ?>
     </div>
 </div>
 
+<!-- ========================================================================= -->
+<!-- CHANGE SHIPPING ADDRESS MODAL (POST-ORDER CONFIRMATION) -->
+<!-- ========================================================================= -->
+<div class="modal fade" id="changeOrderAddressModal" tabindex="-1" role="dialog" aria-labelledby="changeOrderAddressModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document" style="max-width: 520px;">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; overflow: hidden;">
+            <div class="modal-header text-white" style="background: linear-gradient(135deg, #0f766e 0%, #0d9488 100%); padding: 16px 20px;">
+                <h5 class="modal-title text-white font-weight-bold" id="changeOrderAddressModalLabel" style="font-size: 16px;">
+                    <i class="icon-map-marker mr-2"></i> Update Delivery Address - Order #<span id="change-address-modal-order-id"></span>
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close" style="opacity: 0.9;">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="change-order-address-form">
+                <input type="hidden" name="order_id" id="change_addr_order_id" value="">
+                <div class="modal-body p-4">
+                    <div id="change-addr-modal-alert" class="alert d-none py-2 px-3 mb-3" style="font-size: 13px;"></div>
+
+                    <!-- SELECT FROM SAVED ADDRESSES -->
+                    <div class="form-group mb-3" id="saved-addresses-selector-wrapper" style="display: none;">
+                        <label class="font-weight-bold small text-dark mb-1">
+                            <i class="icon-bookmark text-primary mr-1"></i> Choose from Saved Addresses (Optional)
+                        </label>
+                        <select id="select-saved-address-for-order" class="form-control form-control-sm" style="border-radius: 8px;">
+                            <option value="">-- Select a saved address or enter below --</option>
+                        </select>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 form-group mb-2">
+                            <label class="font-weight-bold small text-dark mb-1">First Name <span class="text-danger">*</span></label>
+                            <input type="text" name="first_name" id="change_addr_first_name" class="form-control form-control-sm" required style="border-radius: 8px;">
+                        </div>
+                        <div class="col-md-6 form-group mb-2">
+                            <label class="font-weight-bold small text-dark mb-1">Last Name</label>
+                            <input type="text" name="last_name" id="change_addr_last_name" class="form-control form-control-sm" style="border-radius: 8px;">
+                        </div>
+                    </div>
+
+                    <div class="form-group mb-2">
+                        <label class="font-weight-bold small text-dark mb-1">Contact Phone Number <span class="text-danger">*</span></label>
+                        <div class="input-group input-group-sm">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text bg-light font-weight-bold" style="border-radius: 8px 0 0 8px;">+91</span>
+                            </div>
+                            <input type="tel" name="phone" id="change_addr_phone" class="form-control" maxlength="10" placeholder="10-digit mobile number" required style="border-radius: 0 8px 8px 0;">
+                        </div>
+                    </div>
+
+                    <div class="form-group mb-2">
+                        <label class="font-weight-bold small text-dark mb-1">Street / House Address <span class="text-danger">*</span></label>
+                        <textarea name="street_address" id="change_addr_street" class="form-control form-control-sm" rows="2" placeholder="Flat / House No., Building, Street, Landmark" required style="border-radius: 8px;"></textarea>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 form-group mb-2">
+                            <label class="font-weight-bold small text-dark mb-1">Pincode <span class="text-danger">*</span></label>
+                            <input type="text" name="postcode" id="change_addr_postcode" class="form-control form-control-sm" maxlength="6" placeholder="6-digit PIN" required style="border-radius: 8px;">
+                        </div>
+                        <div class="col-md-4 form-group mb-2">
+                            <label class="font-weight-bold small text-dark mb-1">City <span class="text-danger">*</span></label>
+                            <input type="text" name="city" id="change_addr_city" class="form-control form-control-sm" required style="border-radius: 8px;">
+                        </div>
+                        <div class="col-md-4 form-group mb-2">
+                            <label class="font-weight-bold small text-dark mb-1">State</label>
+                            <input type="text" name="state" id="change_addr_state" class="form-control form-control-sm" placeholder="State" style="border-radius: 8px;">
+                        </div>
+                    </div>
+
+                    <div class="small text-muted mt-2 p-2 rounded" style="background: #f8fafc; border: 1px solid #e2e8f0;">
+                        <i class="icon-info-circle text-primary mr-1"></i>
+                        Updating the delivery address will apply immediately to this order before warehouse packaging and dispatch.
+                    </div>
+                </div>
+                <div class="modal-footer bg-light" style="padding: 12px 20px; border-top: 1px solid #eef2f5;">
+                    <button type="button" class="btn btn-secondary btn-sm px-3" data-dismiss="modal" style="border-radius: 20px;">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-sm px-4" id="btn-submit-change-addr" style="background-color: #0f766e; border-color: #0f766e; border-radius: 20px; font-weight: 600;">
+                        <i class="icon-check mr-1"></i> Save Delivery Address
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
 $(document.body).ready(function() {
 
@@ -457,9 +543,28 @@ $(document.body).ready(function() {
 
                         '<div class="col-md-4 mb-3 mb-md-0">' +
                             '<div class="modal-info-card">' +
-                                '<div class="modal-info-card-title"><i class="icon-map-marker text-warning"></i> Shipping Address</div>' +
-                                '<p class="small text-dark mb-1 font-weight-bold">' + escapeHtml(ord.first_name + ' ' + ord.last_name) + '</p>' +
-                                '<p class="small text-muted mb-1" style="line-height: 1.4;">' + escapeHtml(ord.street_address) + '<br>' + escapeHtml(ord.city) + ' - ' + escapeHtml(ord.postcode) + '</p>' +
+                                '<div class="modal-info-card-title d-flex justify-content-between align-items-center">' +
+                                    '<span><i class="icon-map-marker text-warning"></i> Shipping Address</span>' +
+                                    (canCancel ? (
+                                        '<button type="button" class="btn btn-xs btn-outline-primary btn-change-order-address" ' +
+                                        'data-order-id="' + ord.order_id + '" ' +
+                                        'data-first-name="' + escapeHtml(ord.first_name || '') + '" ' +
+                                        'data-last-name="' + escapeHtml(ord.last_name || '') + '" ' +
+                                        'data-phone="' + escapeHtml(ord.phone || '') + '" ' +
+                                        'data-street="' + escapeHtml(ord.street_address || '') + '" ' +
+                                        'data-city="' + escapeHtml(ord.city || '') + '" ' +
+                                        'data-state="' + escapeHtml(ord.state || '') + '" ' +
+                                        'data-postcode="' + escapeHtml(ord.postcode || '') + '" ' +
+                                        'style="border-radius: 12px; font-size: 11px; padding: 2px 10px; font-weight: 600;">' +
+                                        '<i class="icon-pencil mr-1"></i> Change' +
+                                        '</button>'
+                                    ) : '') +
+                                '</div>' +
+                                '<p class="small text-dark mb-1 font-weight-bold">' + escapeHtml(ord.first_name + ' ' + (ord.last_name || '')) + '</p>' +
+                                '<p class="small text-muted mb-1" style="line-height: 1.4;">' + 
+                                    escapeHtml(ord.street_address) + '<br>' + 
+                                    escapeHtml(ord.city) + (ord.state ? ', ' + escapeHtml(ord.state) : '') + ' - ' + escapeHtml(ord.postcode) + 
+                                '</p>' +
                                 '<p class="small text-muted mb-0"><i class="icon-phone mr-1"></i>+91 ' + escapeHtml(ord.phone) + '</p>' +
                             '</div>' +
                         '</div>' +
@@ -579,9 +684,19 @@ $(document.body).ready(function() {
 
                     financeHtml += '</div></div></div>';
 
-                    // Check if order is eligible for cancellation by user
+                    // Check if order is eligible for cancellation and address modification by user
                     var canCancel = (!isCancelled && !isDelivered && !isDispatched && (ordStatus === 'pending' || ordStatus === 'placed' || ordStatus === 'processing' || ordStatus === 'success'));
                     var cancelBtnHtml = canCancel ? '<button type="button" class="btn btn-outline-danger btn-sm px-3 btn-cancel-order ml-2" data-order-id="' + ord.order_id + '" data-pay-status="' + payStatus + '" data-paid-amt="' + (ord.paid_amount || 0) + '" style="border-radius: 20px; font-weight: 600;"><i class="icon-close mr-1"></i> Cancel Order</button>' : '';
+                    var changeAddrBtnHtml = canCancel ? '<button type="button" class="btn btn-outline-primary btn-sm px-3 btn-change-order-address ml-2" ' +
+                        'data-order-id="' + ord.order_id + '" ' +
+                        'data-first-name="' + escapeHtml(ord.first_name || '') + '" ' +
+                        'data-last-name="' + escapeHtml(ord.last_name || '') + '" ' +
+                        'data-phone="' + escapeHtml(ord.phone || '') + '" ' +
+                        'data-street="' + escapeHtml(ord.street_address || '') + '" ' +
+                        'data-city="' + escapeHtml(ord.city || '') + '" ' +
+                        'data-state="' + escapeHtml(ord.state || '') + '" ' +
+                        'data-postcode="' + escapeHtml(ord.postcode || '') + '" ' +
+                        'style="border-radius: 20px; font-weight: 600;"><i class="icon-map-marker mr-1"></i> Change Address</button>' : '';
 
                     // Modal action buttons in footer
                     var modalFooterHtml = '<div class="d-flex justify-content-between align-items-center w-100 flex-wrap gap-2">' +
@@ -589,6 +704,7 @@ $(document.body).ready(function() {
                                                   '<button type="button" class="btn btn-outline-dark btn-sm px-3" onclick="window.print()" style="border-radius: 20px; font-weight: 600;">' +
                                                       '<i class="icon-print mr-1"></i> Print Invoice' +
                                                   '</button>' +
+                                                  changeAddrBtnHtml +
                                                   cancelBtnHtml +
                                               '</div>' +
                                               '<div class="d-flex gap-2" style="gap: 8px;">' +
@@ -778,6 +894,131 @@ $(document.body).ready(function() {
             },
             error: function() {
                 $btn.prop('disabled', false).html('<i class="icon-trash mr-1"></i> Confirm Cancellation');
+                $alert.removeClass('d-none alert-success').addClass('alert-danger').text('Network error occurred. Please try again.');
+            }
+        });
+    });
+
+    // -------------------------------------------------------------
+    // CHANGE ORDER SHIPPING ADDRESS - MODAL TRIGGER & AUTOFILL
+    // -------------------------------------------------------------
+    var cachedSavedAddresses = null;
+
+    $(document).on('click', '.btn-change-order-address', function(e) {
+        e.preventDefault();
+        var $btn = $(this);
+        var orderId = $btn.data('order-id');
+        if (!orderId) return;
+
+        $('#change_addr_order_id').val(orderId);
+        $('#change-address-modal-order-id').text(orderId);
+        $('#change-addr-modal-alert').addClass('d-none').removeClass('alert-success alert-danger').text('');
+
+        // Populate with current values
+        $('#change_addr_first_name').val($btn.data('first-name') || '');
+        $('#change_addr_last_name').val($btn.data('last-name') || '');
+        $('#change_addr_phone').val($btn.data('phone') || '');
+        $('#change_addr_street').val($btn.data('street') || '');
+        $('#change_addr_city').val($btn.data('city') || '');
+        $('#change_addr_state').val($btn.data('state') || '');
+        $('#change_addr_postcode').val($btn.data('postcode') || '');
+
+        function populateSavedDropdown(addresses) {
+            cachedSavedAddresses = addresses || [];
+            if (cachedSavedAddresses.length > 0) {
+                var opts = '<option value="">-- Pick from your saved addresses (Optional) --</option>';
+                cachedSavedAddresses.forEach(function(addr, idx) {
+                    opts += '<option value="' + idx + '">' + escapeHtml(addr.title || 'Address') + ': ' + escapeHtml(addr.first_name + ' ' + (addr.last_name || '')) + ' - ' + escapeHtml(addr.street_address) + ', ' + escapeHtml(addr.city) + ' (' + addr.postcode + ')</option>';
+                });
+                $('#select-saved-address-for-order').html(opts).val('');
+                $('#saved-addresses-selector-wrapper').show();
+            } else {
+                $('#saved-addresses-selector-wrapper').hide();
+            }
+        }
+
+        if (cachedSavedAddresses !== null) {
+            populateSavedDropdown(cachedSavedAddresses);
+        } else {
+            $.ajax({
+                url: 'user-api.php',
+                type: 'GET',
+                data: { action: 'get_addresses' },
+                dataType: 'json',
+                success: function(res) {
+                    if (res.success) {
+                        populateSavedDropdown(res.addresses);
+                    }
+                }
+            });
+        }
+
+        $('#changeOrderAddressModal').modal('show');
+    });
+
+    // When a saved address is picked, autofill the form
+    $('#select-saved-address-for-order').on('change', function() {
+        var idx = $(this).val();
+        if (idx !== '' && cachedSavedAddresses && cachedSavedAddresses[idx]) {
+            var a = cachedSavedAddresses[idx];
+            $('#change_addr_first_name').val(a.first_name || '');
+            $('#change_addr_last_name').val(a.last_name || '');
+            $('#change_addr_phone').val(a.phone || '');
+            $('#change_addr_street').val(a.street_address || '');
+            $('#change_addr_city').val(a.city || '');
+            $('#change_addr_state').val(a.state || '');
+            $('#change_addr_postcode').val(a.postcode || '');
+        }
+    });
+
+    // -------------------------------------------------------------
+    // CHANGE ORDER ADDRESS - FORM SUBMIT (AJAX)
+    // -------------------------------------------------------------
+    $('#change-order-address-form').on('submit', function(e) {
+        e.preventDefault();
+        var $btn = $('#btn-submit-change-addr');
+        var $alert = $('#change-addr-modal-alert');
+        var orderId = $('#change_addr_order_id').val();
+
+        $btn.prop('disabled', true).html('<i class="icon-refresh icon-spin mr-1"></i> Saving Address...');
+        $alert.addClass('d-none').removeClass('alert-success alert-danger');
+
+        $.ajax({
+            url: 'user-api.php',
+            type: 'POST',
+            data: $(this).serialize() + '&action=update_order_address',
+            dataType: 'json',
+            success: function(res) {
+                $btn.prop('disabled', false).html('<i class="icon-check mr-1"></i> Save Delivery Address');
+                if (res.success && res.address) {
+                    $alert.removeClass('d-none alert-danger').addClass('alert-success').text(res.message || 'Shipping address updated successfully.');
+
+                    var newAddr = res.address;
+
+                    // Update data attributes on matching buttons across page
+                    var $triggers = $('.btn-change-order-address[data-order-id="' + orderId + '"]');
+                    $triggers.data('first-name', newAddr.first_name)
+                             .data('last-name', newAddr.last_name)
+                             .data('phone', newAddr.phone)
+                             .data('street', newAddr.street_address)
+                             .data('city', newAddr.city)
+                             .data('state', newAddr.state)
+                             .data('postcode', newAddr.postcode);
+
+                    setTimeout(function() {
+                        $('#changeOrderAddressModal').modal('hide');
+
+                        // If details modal is open for this order, refresh its view
+                        if ($('#orderDetailsModal').hasClass('show') && $('#modal-order-id').text().indexOf(orderId) !== -1) {
+                            $('.btn-view-order[data-order-id="' + orderId + '"]').first().trigger('click');
+                        }
+                    }, 1100);
+                } else {
+                    $alert.removeClass('d-none alert-success').addClass('alert-danger').text(res.message || 'Failed to update address.');
+                }
+            },
+            error: function() {
+                $btn.prop('disabled', false).html('<i class="icon-check mr-1"></i> Save Delivery Address');
                 $alert.removeClass('d-none alert-success').addClass('alert-danger').text('Network error occurred. Please try again.');
             }
         });

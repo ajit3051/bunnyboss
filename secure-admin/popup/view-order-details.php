@@ -88,7 +88,7 @@ $items_stmt = $db->select("SELECT OI.*, (SELECT image_path FROM tbl_item_images 
 						<p><strong>Name:</strong> <?= htmlspecialchars($order['first_name'] . ' ' . $order['last_name']) ?></p>
 						<p><strong>Phone:</strong> <?= htmlspecialchars($order['phone']) ?></p>
 						<p><strong>Address:</strong> <?= htmlspecialchars($order['street_address']) ?></p>
-						<p><strong>City / Pincode:</strong> <?= htmlspecialchars($order['city']) ?> - <?= htmlspecialchars($order['postcode']) ?></p>
+						<p><strong>City / Pincode:</strong> <?= htmlspecialchars($order['city']) ?><?= !empty($order['state']) ? ', ' . htmlspecialchars($order['state']) : '' ?> - <?= htmlspecialchars($order['postcode']) ?></p>
 						<?php if (!empty($order['order_notes'])): ?>
 							<p><strong>Order Notes:</strong> <?= htmlspecialchars($order['order_notes']) ?></p>
 						<?php endif; ?>

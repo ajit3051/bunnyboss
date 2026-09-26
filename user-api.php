@@ -387,6 +387,132 @@ if ($action === 'cancel_order') {
     exit;
 }
 
+// ---------------------------------------------------------
+// 9. UPDATE ORDER SHIPPING ADDRESS (POST-CONFIRMATION)
+// ---------------------------------------------------------
+if ($action === 'update_order_address') {
+    $order_id       = (int)($_POST['order_id'] ?? 0);
+    $first_name     = trim($_POST['first_name'] ?? '');
+    $last_name      = trim($_POST['last_name'] ?? '');
+    $phone          = trim($_POST['phone'] ?? '');
+    $street_address = trim($_POST['street_address'] ?? '');
+    $city           = trim($_POST['city'] ?? '');
+    $state          = trim($_POST['state'] ?? '');
+    $postcode       = trim($_POST['postcode'] ?? '');
+
+    if ($order_id <= 0) {
+        echo json_encode(['success' => false, 'message' => 'Invalid order ID.']);
+        exit;
+    }
+
+    if (empty($first_name) || empty($phone) || empty($street_address) || empty($city) || empty($postcode)) {
+        echo json_encode(['success' => false, 'message' => 'Please fill in all required shipping address fields.']);
+        exit;
+    }
+
+    $clean_phone = preg_replace('/\D/', '', $phone);
+    if (strlen($clean_phone) < 10) {
+        echo json_encode(['success' => false, 'message' => 'Please enter a valid 10-digit contact number.']);
+        exit;
+    }
+    if (strlen($clean_phone) > 10) {
+        $clean_phone = substr($clean_phone, -10);
+    }
+
+    $clean_postcode = preg_replace('/\D/', '', $postcode);
+    if (strlen($clean_postcode) !== 6) {
+        echo json_encode(['success' => false, 'message' => 'Please enter a valid 6-digit delivery pincode.']);
+        exit;
+    }
+
+    // Verify order exists and belongs to current user
+    $ord_stmt = $db->select(
+        "SELECT * FROM tbl_orders WHERE order_id = ? AND (user_id = ? OR phone = ?)",
+        'iis',
+        $order_id,
+        $user_id,
+        $user_mobile
+    );
+
+    if (!$ord_stmt || $ord_stmt->num_rows === 0) {
+        echo json_encode(['success' => false, 'message' => 'Order not found or unauthorized access.']);
+        exit;
+    }
+
+    $order = $ord_stmt->fetch_assoc();
+    $current_status = strtolower(trim($order['order_status'] ?? 'pending'));
+
+    // Check if order is eligible for address change
+    if ($current_status === 'cancelled') {
+        echo json_encode(['success' => false, 'message' => 'Cannot update address for a cancelled order.']);
+        exit;
+    }
+
+    if (in_array($current_status, ['delivered', 'completed', 'rto', 'returned'])) {
+        echo json_encode(['success' => false, 'message' => 'Delivered orders cannot be updated.']);
+        exit;
+    }
+
+    $dispatch_status = strtolower(trim($order['dispatch_status'] ?? ''));
+    if (in_array($current_status, ['shipped', 'dispatched']) || in_array($dispatch_status, ['shipped', 'dispatched', 'in_transit', 'out_for_delivery'])) {
+        echo json_encode(['success' => false, 'message' => 'This order has already been dispatched with the courier partner and cannot be updated online.']);
+        exit;
+    }
+
+    // Check courier serviceability for new pincode
+    if (function_exists('checkCourierServiceability')) {
+        $serv = checkCourierServiceability($clean_postcode, $order['courier_name'] ?? null);
+        if (isset($serv['serviceable']) && $serv['serviceable'] === false) {
+            echo json_encode(['success' => false, 'message' => "Sorry, delivery is not available for pincode {$clean_postcode}. Please enter a serviceable address."]);
+            exit;
+        }
+    }
+
+    // If order was already booked with courier (AWB generated) before pickup, cancel old courier booking so it can be re-dispatched with updated address
+    if (!empty($order['courier_awb']) || !empty($order['delhivery_awb'])) {
+        if (function_exists('cancelCourierShipment')) {
+            cancelCourierShipment($order, 'Customer updated delivery address');
+        }
+    }
+
+    // Update tbl_orders
+    $updated = $db->update(
+        "UPDATE tbl_orders 
+         SET first_name = ?, last_name = ?, phone = ?, street_address = ?, city = ?, state = ?, postcode = ?,
+             courier_awb = NULL, delhivery_awb = NULL, dispatch_status = 'pending'
+         WHERE order_id = ?",
+        'sssssssi',
+        $first_name,
+        $last_name,
+        $clean_phone,
+        $street_address,
+        $city,
+        $state,
+        $clean_postcode,
+        $order_id
+    );
+
+    if ($updated !== false) {
+        echo json_encode([
+            'success' => true,
+            'message' => 'Shipping address for Order #' . $order_id . ' has been updated successfully!',
+            'order_id' => $order_id,
+            'address' => [
+                'first_name' => $first_name,
+                'last_name' => $last_name,
+                'phone' => $clean_phone,
+                'street_address' => $street_address,
+                'city' => $city,
+                'state' => $state,
+                'postcode' => $clean_postcode
+            ]
+        ]);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Failed to update shipping address. Please try again.']);
+    }
+    exit;
+}
+
 echo json_encode(['success' => false, 'message' => 'Invalid action request.']);
 exit;
 
