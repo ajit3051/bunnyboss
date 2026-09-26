@@ -121,6 +121,12 @@ function createCourierShipment($order, $courier_name = null)
     }
 
     if ($courier_name === 'shadowfax') {
+        if (!defined('SHADOWFAX_ENABLED') || !SHADOWFAX_ENABLED) {
+            if (defined('DELHIVERY_ENABLED') && DELHIVERY_ENABLED) {
+                return createDelhiveryShipment($order);
+            }
+            return ['success' => false, 'message' => 'Shadowfax courier service is disabled.', 'error' => 'SHADOWFAX_DISABLED'];
+        }
         $sf_res = createShadowfaxShipment($order);
         if (!$sf_res['success'] && defined('DELHIVERY_ENABLED') && DELHIVERY_ENABLED) {
             error_log("Shadowfax creation failed for order " . ($order['order_id'] ?? '') . " (" . ($sf_res['error'] ?? 'Unserviceable pincode') . "). Falling back to Delhivery...");
@@ -234,6 +240,15 @@ function executeShadowfaxCurl($payload, $token = null, $url = null)
  */
 function createShadowfaxShipment($order)
 {
+    if (defined('SHADOWFAX_ENABLED') && !SHADOWFAX_ENABLED) {
+        return [
+            'success'      => false,
+            'courier_name' => 'shadowfax',
+            'error'        => 'Shadowfax is disabled in configuration',
+            'waybill'      => null
+        ];
+    }
+
     // If a full pre-built payload array is passed directly
     if (isset($order['order_details']) && (isset($order['customer_details']) || isset($order['pickup_details']))) {
         return executeShadowfaxCurl($order);
@@ -603,6 +618,104 @@ function trackDelhiveryShipment($waybill)
         'expected_date'  => $shipment['ExpectedDeliveryDate'] ?? '',
         'scans'          => $shipment['Scans'] ?? []
     ];
+}
+
+/**
+ * Cancel a shipment on Shadowfax via API
+ *
+ * @param string|int $order_id Client order ID
+ * @param string|null $awb_number Shadowfax AWB tracking number (optional)
+ * @param string $cancellation_reason Reason for cancellation
+ * @return array
+ */
+function cancelShadowfaxShipment($order_id, $awb_number = null, $cancellation_reason = 'Customer requested cancellation')
+{
+    $token = defined('SHADOWFAX_API_TOKEN') ? SHADOWFAX_API_TOKEN : 'f1715d10fef84d24fa366892dbc29818ffdc4aca';
+    $cancel_url = defined('SHADOWFAX_CANCEL_URL') ? SHADOWFAX_CANCEL_URL : 'https://dale.shadowfax.in/api/v2/clients/orders/cancel/';
+
+    $payload = [
+        'order_id'            => (string)$order_id,
+        'cancellation_reason' => $cancellation_reason
+    ];
+
+    if (!empty($awb_number)) {
+        $payload['awb_number'] = (string)$awb_number;
+    }
+
+    $ch = curl_init($cancel_url);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_CUSTOMREQUEST  => "POST",
+        CURLOPT_POSTFIELDS     => json_encode($payload, JSON_UNESCAPED_SLASHES),
+        CURLOPT_HTTPHEADER     => [
+            "Content-Type: application/json",
+            "Authorization: Token " . $token,
+        ],
+        CURLOPT_SSL_VERIFYPEER => true,
+        CURLOPT_TIMEOUT        => 15,
+    ]);
+
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $error    = curl_error($ch);
+    curl_close($ch);
+
+    if ($error) {
+        error_log("Shadowfax cancel cURL error: " . $error);
+        return [
+            'success' => false,
+            'message' => $error
+        ];
+    }
+
+    $decoded = json_decode($response, true);
+    $is_success = ($httpCode >= 200 && $httpCode < 300);
+
+    return [
+        'success'   => $is_success,
+        'http_code' => $httpCode,
+        'response'  => $decoded
+    ];
+}
+
+/**
+ * Cancel a shipment with the assigned courier partner (Shadowfax or Delhivery)
+ *
+ * @param array $order Order record array from tbl_orders
+ * @param string $reason Cancellation reason
+ * @return array
+ */
+function cancelCourierShipment($order, $reason = 'Customer requested cancellation')
+{
+    $courier = strtolower($order['courier_name'] ?? '');
+    $awb = $order['courier_awb'] ?? $order['delhivery_awb'] ?? null;
+    $order_id = $order['order_id'] ?? null;
+
+    if ($courier === 'shadowfax' || !empty($order['courier_awb'])) {
+        return cancelShadowfaxShipment($order_id, $awb, $reason);
+    } elseif ($courier === 'delhivery' || !empty($order['delhivery_awb'])) {
+        $token = defined('DELHIVERY_API_TOKEN') ? DELHIVERY_API_TOKEN : '';
+        if (empty($token) || empty($awb)) {
+            return ['success' => false, 'message' => 'Missing Delhivery credentials or AWB'];
+        }
+        $ch = curl_init('https://track.delhivery.com/api/p/edit');
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_CUSTOMREQUEST  => 'POST',
+            CURLOPT_POSTFIELDS     => json_encode(['waybill' => (string)$awb, 'cancellation' => 'true']),
+            CURLOPT_HTTPHEADER     => [
+                'Content-Type: application/json',
+                'Authorization: Token ' . $token,
+            ],
+            CURLOPT_TIMEOUT        => 15,
+        ]);
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        return ['success' => ($httpCode >= 200 && $httpCode < 300), 'response' => json_decode($response, true)];
+    }
+
+    return ['success' => true, 'message' => 'No active courier dispatch found to cancel'];
 }
 
 /**

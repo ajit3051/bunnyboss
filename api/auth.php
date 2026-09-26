@@ -19,9 +19,70 @@ $action = $request['action'] ?? '';
 $db = connect();
 
 // ---------------------------------------------------------
+// 0. DIRECT MOBILE LOGIN (Used when SMS is disabled or direct mobile login requested)
+// ---------------------------------------------------------
+if ($action === 'mobile_direct_login') {
+    $raw_mobile = $request['mobile'] ?? '';
+    $mobile = preg_replace('/[^0-9]/', '', $raw_mobile);
+
+    if (strlen($mobile) !== 10 || !preg_match('/^[6-9]\d{9}$/', $mobile)) {
+        echo json_encode(['success' => false, 'message' => 'Please enter a valid 10-digit mobile number starting with 6-9.']);
+        exit;
+    }
+
+    $stmt = $db->select("SELECT * FROM tbl_users WHERE mobile = ?", 's', $mobile);
+    $user = $stmt ? $stmt->fetch_assoc() : null;
+
+    if ($user) {
+        if ($user['status'] === 'inactive') {
+            echo json_encode(['success' => false, 'message' => 'Your account is inactive. Please contact support.']);
+            exit;
+        }
+    } else {
+        $new_id = $db->insert("INSERT INTO tbl_users (mobile, role, status) VALUES (?, 'customer', 'active')", 's', $mobile);
+        $stmt = $db->select("SELECT * FROM tbl_users WHERE id = ?", 'i', $new_id);
+        $user = $stmt ? $stmt->fetch_assoc() : null;
+    }
+
+    if (!$user) {
+        echo json_encode(['success' => false, 'message' => 'User record error.']);
+        exit;
+    }
+
+    $user_token = generate_user_api_token($user['id']);
+
+    $_SESSION['user_id'] = (int)$user['id'];
+    $_SESSION['user_name'] = !empty($user['name']) ? $user['name'] : 'User (' . substr($user['mobile'], -4) . ')';
+    $_SESSION['user_mobile'] = $user['mobile'];
+    $_SESSION['user_role'] = $user['role'];
+
+    $redirect_url = in_array($user['role'], ['admin', 'staff'], true) ? _ADMIN_URL . 'index.php' : (_BASEURL . 'index.php');
+
+    echo json_encode([
+        'success' => true,
+        'message' => 'Login successful!',
+        'token' => $user_token,
+        'user' => [
+            'id' => (int)$user['id'],
+            'name' => $_SESSION['user_name'],
+            'mobile' => $user['mobile'],
+            'email' => $user['email'] ?? '',
+            'role' => $user['role']
+        ],
+        'redirect_url' => $redirect_url
+    ]);
+    exit;
+}
+
+// ---------------------------------------------------------
 // 1. SEND OTP
 // ---------------------------------------------------------
 if ($action === 'send_otp') {
+    if (!defined('_ENABLE_SMS_') || !_ENABLE_SMS_) {
+        echo json_encode(['success' => false, 'message' => 'SMS service is currently disabled. Please contact support or use password login.']);
+        exit;
+    }
+
     $raw_mobile = $request['mobile'] ?? '';
     $mobile = preg_replace('/[^0-9]/', '', $raw_mobile);
 
@@ -53,11 +114,23 @@ if ($action === 'send_otp') {
     $_SESSION['otp_code'] = $otp;
     $_SESSION['otp_expiry'] = $expiry;
 
-    echo json_encode([
+    // Send OTP via configured SMS Gateway
+    $validity_min = defined('API_OTP_EXPIRY_MINUTES') ? (int)API_OTP_EXPIRY_MINUTES : 5;
+    $sms_result = ['success' => true];
+    if (defined('_ENABLE_SMS_') && _ENABLE_SMS_) {
+        $sms_result = send_sms_otp($mobile, $otp, $validity_min);
+    }
+
+    $response_payload = [
         'success' => true,
-        'message' => 'OTP sent successfully to +91-' . $mobile,
-        'debug_otp' => $otp
-    ]);
+        'message' => 'OTP sent successfully to +91-' . $mobile
+    ];
+
+    if (defined('API_OTP_DEBUG') && API_OTP_DEBUG) {
+        $response_payload['debug_otp'] = $otp;
+    }
+
+    echo json_encode($response_payload);
     exit;
 }
 

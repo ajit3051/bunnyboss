@@ -919,10 +919,14 @@ function getHTMLProductList($offset = 0, $limit = 0)
 
 function createDelhiveryShipment($order)
 {
+    if (defined('DELHIVERY_ENABLED') && !DELHIVERY_ENABLED) {
+        return ['success' => false, 'waybill' => null, 'error' => 'Delhivery disabled in config'];
+    }
 
-    $api_token   = DELHIVERY_API_TOKEN;
-    $api_url    = DELHIVERY_CREATE_URL;
-    $pickup_name = PICKUP_LOCATION_NAME;
+    $api_token   = defined('DELHIVERY_API_TOKEN') ? DELHIVERY_API_TOKEN : '';
+    $api_url     = defined('DELHIVERY_CREATE_URL') ? DELHIVERY_CREATE_URL : 'https://track.delhivery.com/api/cmu/create.json';
+    $pickup_name = defined('PICKUP_LOCATION_NAME') ? PICKUP_LOCATION_NAME : (defined('DELHIVERY_PICKUP_NAME') ? DELHIVERY_PICKUP_NAME : (defined('SHADOWFAX_PICKUP_NAME') ? SHADOWFAX_PICKUP_NAME : 'BunnyBoss Warehouse'));
+
 
     $shipment = [
         "name"          => $order['customer_name'],
@@ -1049,6 +1053,60 @@ function deduct_order_stock($order_id)
 
     // Mark order as stock deducted
     $db->update("UPDATE tbl_orders SET is_stock_deducted = 1 WHERE order_id = ?", 'i', $order_id);
+    return true;
+}
+
+/**
+ * Restore purchased item quantities back to variant stock when an order is cancelled.
+ * Idempotent: checks is_stock_deducted flag so quantities are not restored multiple times.
+ */
+function restore_order_stock($order_id)
+{
+    $order_id = (int)$order_id;
+    if ($order_id <= 0) return false;
+
+    $db = connect();
+
+    // Check if stock was previously deducted
+    $order_stmt = $db->select("SELECT is_stock_deducted FROM tbl_orders WHERE order_id = ?", 'i', $order_id);
+    if (!$order_stmt || $order_stmt->num_rows == 0) return false;
+
+    $order_row = $order_stmt->fetch_assoc();
+    if (empty($order_row['is_stock_deducted']) || (int)$order_row['is_stock_deducted'] === 0) {
+        return true; // Stock wasn't deducted or already restored
+    }
+
+    // Fetch order items and restore quantities into tbl_item_variants
+    $items_stmt = $db->select("SELECT product_id, qty, size FROM tbl_order_items WHERE order_id = ?", 'i', $order_id);
+    if ($items_stmt && $items_stmt->num_rows > 0) {
+        while ($item = $items_stmt->fetch_assoc()) {
+            $product_id = (int)($item['product_id'] ?? 0);
+            $qty        = (int)($item['qty'] ?? 0);
+            $size       = trim((string)($item['size'] ?? ''));
+
+            if ($product_id > 0 && $qty > 0) {
+                if ($size !== '') {
+                    $db->update(
+                        "UPDATE tbl_item_variants SET quantity = quantity + ? WHERE item_id = ? AND size_name = ?",
+                        'iis',
+                        $qty,
+                        $product_id,
+                        $size
+                    );
+                } else {
+                    $db->update(
+                        "UPDATE tbl_item_variants SET quantity = quantity + ? WHERE item_id = ? LIMIT 1",
+                        'ii',
+                        $qty,
+                        $product_id
+                    );
+                }
+            }
+        }
+    }
+
+    // Mark order as stock NOT deducted
+    $db->update("UPDATE tbl_orders SET is_stock_deducted = 0 WHERE order_id = ?", 'i', $order_id);
     return true;
 }
 

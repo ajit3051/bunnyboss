@@ -55,10 +55,16 @@ $items_stmt = $db->select("SELECT OI.*, (SELECT image_path FROM tbl_item_images 
 						<p><strong>Order ID:</strong> #<?= htmlspecialchars($order['order_id']) ?></p>
 						<p><strong>Order Date:</strong> <?= (!empty($order['created_at']) && $order['created_at'] !== '0000-00-00 00:00:00') ? date('d/m/Y h:i A', strtotime($order['created_at'])) : '' ?></p>
 						<p><strong>Order Status:</strong> 
-							<span class="label label-<?= ($order['order_status'] == 'paid' || $order['order_status'] == 'completed') ? 'success' : 'warning' ?>">
+							<span class="label label-<?= ($order['order_status'] == 'paid' || $order['order_status'] == 'completed') ? 'success' : ($order['order_status'] == 'cancelled' ? 'danger' : 'warning') ?>">
 								<?= htmlspecialchars(strtoupper($order['order_status'])) ?>
 							</span>
 						</p>
+						<?php if ($order['order_status'] == 'cancelled'): ?>
+							<p><strong>Cancel Reason:</strong> <span class="text-danger font-weight-bold"><?= htmlspecialchars($order['cancel_reason'] ?? 'Not specified') ?></span></p>
+							<?php if (!empty($order['cancelled_at'])): ?>
+								<p><strong>Cancelled At:</strong> <?= date('d/m/Y h:i A', strtotime($order['cancelled_at'])) ?> (by <?= htmlspecialchars($order['cancelled_by'] ?? 'user') ?>)</p>
+							<?php endif; ?>
+						<?php endif; ?>
 						<p><strong>Payment Method:</strong> <?= htmlspecialchars(strtoupper($order['payment_method'] ?? 'N/A')) ?></p>
 						<p><strong>Payment Status:</strong> <?= htmlspecialchars(strtoupper($order['payment_status'] ?? 'N/A')) ?></p>
 						<?php if (!empty($order['razorpay_payment_id'])): ?>

@@ -72,10 +72,16 @@ if ($action === 'process_order') {
 
     $enable_cod_online_deposit = defined('_ENABLE_COD_ONLINE_DEPOSIT_') ? (bool)_ENABLE_COD_ONLINE_DEPOSIT_ : false;
     $enable_razorpay           = defined('_ENABLE_RAZORPAY_')           ? (bool)_ENABLE_RAZORPAY_           : false;
-    $is_direct_order           = (!$enable_razorpay) || (!$enable_cod_online_deposit) || ($payment_method === 'cod');
+    $requires_razorpay         = ($payment_method === 'razorpay') || 
+                                  ($payment_method === 'cod' && $enable_cod_online_deposit && $enable_razorpay);
+    $is_direct_order           = !$requires_razorpay;
 
-    $order_status   = $is_direct_order ? 'success' : 'pending';
-    $payment_status = $is_direct_order ? ($payment_method === 'cod' ? 'pending' : 'paid') : 'pending';
+    $order_status = $is_direct_order ? 'success' : 'pending';
+    if ($payment_method === 'cod') {
+        $payment_status = $enable_cod_online_deposit ? 'partial_paid' : 'cod';
+    } else {
+        $payment_status = $is_direct_order ? 'paid' : 'pending';
+    }
     $current_date   = date("Y-m-d H:i:s");
     $user_id_val    = !empty($user_id) ? (int)$user_id : null;
 
@@ -134,6 +140,9 @@ if ($action === 'process_order') {
         deduct_order_stock($new_order_id);
         if (function_exists('dispatchOrderById')) {
             dispatchOrderById($new_order_id);
+        }
+        if (function_exists('send_order_placed_sms_by_id')) {
+            send_order_placed_sms_by_id($new_order_id);
         }
     }
 
@@ -404,5 +413,99 @@ if ($action === 'track_order') {
     exit;
 }
 
+// ---------------------------------------------------------
+// 7. CANCEL ORDER
+// ---------------------------------------------------------
+if ($action === 'cancel_order') {
+    $order_id = (int)($request['order_id'] ?? 0);
+    $reason   = trim($request['reason'] ?? '');
+    $comments = trim($request['comments'] ?? '');
+
+    if ($order_id <= 0) {
+        echo json_encode(['success' => false, 'message' => 'Invalid order ID.']);
+        exit;
+    }
+
+    if (empty($reason)) {
+        echo json_encode(['success' => false, 'message' => 'Please provide a reason for cancellation.']);
+        exit;
+    }
+
+    $ord_stmt = $db->select("SELECT * FROM tbl_orders WHERE order_id = ?", 'i', $order_id);
+    if (!$ord_stmt || $ord_stmt->num_rows === 0) {
+        echo json_encode(['success' => false, 'message' => 'Order not found.']);
+        exit;
+    }
+
+    $order = $ord_stmt->fetch_assoc();
+    $current_status = strtolower(trim($order['order_status'] ?? 'pending'));
+
+    if ($current_status === 'cancelled') {
+        echo json_encode(['success' => false, 'message' => 'This order is already cancelled.']);
+        exit;
+    }
+
+    if (in_array($current_status, ['delivered', 'completed', 'rto', 'returned'])) {
+        echo json_encode(['success' => false, 'message' => 'Delivered orders cannot be cancelled online.']);
+        exit;
+    }
+
+    $dispatch_status = strtolower(trim($order['dispatch_status'] ?? ''));
+    if (in_array($current_status, ['shipped', 'dispatched']) || in_array($dispatch_status, ['shipped', 'dispatched', 'in_transit', 'out_for_delivery'])) {
+        echo json_encode(['success' => false, 'message' => 'This order has already been dispatched with courier and cannot be cancelled online.']);
+        exit;
+    }
+
+    $full_reason = $reason;
+    if (!empty($comments)) {
+        $full_reason .= ' - ' . $comments;
+    }
+
+    if (function_exists('restore_order_stock')) {
+        restore_order_stock($order_id);
+    }
+
+    // Notify courier partner (Shadowfax / Delhivery) if shipment was created
+    if (!empty($order['courier_awb']) || !empty($order['delhivery_awb']) || !empty($order['courier_name'])) {
+        if (function_exists('cancelCourierShipment')) {
+            cancelCourierShipment($order, $full_reason);
+        }
+    }
+
+    $updated = $db->update(
+        "UPDATE tbl_orders 
+         SET order_status = 'cancelled', 
+             cancel_reason = ?, 
+             cancelled_at = NOW(), 
+             cancelled_by = 'user',
+             dispatch_status = 'cancelled'
+         WHERE order_id = ?",
+        'si',
+        $full_reason,
+        $order_id
+    );
+
+    if ($updated !== false) {
+        $refund_note = '';
+        $pay_status = strtolower(trim($order['payment_status'] ?? ''));
+        $paid_amt = (float)($order['paid_amount'] ?? 0);
+        if (($pay_status === 'paid' || $pay_status === 'partial_paid') && $paid_amt > 0) {
+            $refund_note = " A refund of ₹" . number_format($paid_amt, 2) . " will be initiated within 5-7 business days.";
+        }
+
+        echo json_encode([
+            'success' => true,
+            'message' => 'Order #' . $order_id . ' has been successfully cancelled.' . $refund_note,
+            'order_id' => $order_id,
+            'order_status' => 'cancelled',
+            'cancel_reason' => $full_reason
+        ]);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Failed to cancel order.']);
+    }
+    exit;
+}
+
 echo json_encode(['success' => false, 'message' => 'Invalid order API action request.']);
 exit;
+

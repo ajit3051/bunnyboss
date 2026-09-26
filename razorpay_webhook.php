@@ -184,6 +184,11 @@ if (function_exists('dispatchOrderById')) {
     dispatchOrderById($db_order_id);
 }
 
+// Dispatch order confirmation SMS (guarded against duplicates)
+if (function_exists('send_order_placed_sms_by_id')) {
+    send_order_placed_sms_by_id($db_order_id);
+}
+
 $db->close();
 
 log_razorpay_webhook($event, $payment_id, $rzp_order_id, $db_order_id, $amount, $status, $raw_input, 200, 'Order updated successfully to ' . $target_payment_status);

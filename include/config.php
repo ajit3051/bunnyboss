@@ -88,11 +88,9 @@ if (!defined('_SHIPPING_CHARGE_')) {
 if (!defined('_SHIPPING_CHARGE_PER_ITEM_')) {
     define("_SHIPPING_CHARGE_PER_ITEM_", "150");
 }
-if (!defined('_ENABLE_MOBILE_VERIFICATION_')) {
-    define("_ENABLE_MOBILE_VERIFICATION_", false);
-}
+
 if (!defined('_ENABLE_COD_')) {
-    define("_ENABLE_COD_", false);
+    define("_ENABLE_COD_", true);
 }
 // COD Upfront Online Deposit Setting (Set to true to require upfront shipping/GST payment via Razorpay for COD, or false for 100% Pure COD)
 if (!defined('_ENABLE_COD_ONLINE_DEPOSIT_')) {
@@ -147,6 +145,11 @@ if (!defined('DELHIVERY_PINCODE_URL'))
     define('DELHIVERY_PINCODE_URL', 'https://track.delhivery.com/c/api/pin-codes/json/');
 if (!defined('DELHIVERY_ENABLED'))
     define('DELHIVERY_ENABLED', true);
+if (!defined('PICKUP_LOCATION_NAME'))
+    define('PICKUP_LOCATION_NAME', 'BunnyBoss Warehouse');
+if (!defined('DELHIVERY_PICKUP_NAME'))
+    define('DELHIVERY_PICKUP_NAME', 'BunnyBoss Warehouse');
+
 
 // Shadowfax Courier Integration Config
 if (!defined('SHADOWFAX_API_TOKEN'))
@@ -186,7 +189,7 @@ if (!defined('SHADOWFAX_RTO_STATE'))
 if (!defined('SHADOWFAX_RTO_PINCODE'))
     define('SHADOWFAX_RTO_PINCODE', '110059');
 if (!defined('SHADOWFAX_ENABLED'))
-    define('SHADOWFAX_ENABLED', true);
+    define('SHADOWFAX_ENABLED', false);
 
 // Excluded test product IDs and SKUs (never pushed to Shadowfax)
 if (!defined('SHADOWFAX_TEST_PRODUCT_IDS')) {
@@ -205,3 +208,5 @@ include_once(__DIR__ . "/ajax_functions.php");
 include_once(__DIR__ . "/send_mail.php");
 require_once(__DIR__ . "/razorpay_config.php");
 require_once(__DIR__ . "/courier_service.php");
+require_once(__DIR__ . "/sms_config.php");
+require_once(__DIR__ . "/sms_service.php");
