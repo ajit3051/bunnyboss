@@ -240,13 +240,13 @@ if ($is_logged_in):
                                         <?php endif; ?>
                                     </div>
 
-                                    <div class="d-flex justify-content-lg-end align-items-center flex-wrap gap-2" style="gap: 8px;">
-                                        <button type="button" class="btn btn-outline-primary btn-sm btn-view-order px-3" data-order-id="<?= $ord['order_id'] ?>" style="border-radius: 20px; font-weight: 600;">
-                                            <i class="icon-eye mr-1"></i> View Order Details
+                                    <div class="order-action-btns">
+                                        <button type="button" class="order-btn order-btn-outline btn-view-order" data-order-id="<?= $ord['order_id'] ?>">
+                                            <i class="icon-eye"></i> View Details
                                         </button>
 
                                         <?php if ($can_cancel): ?>
-                                            <button type="button" class="btn btn-outline-secondary btn-sm btn-change-order-address px-3"
+                                            <button type="button" class="order-btn order-btn-secondary btn-change-order-address"
                                                     data-order-id="<?= $ord['order_id'] ?>"
                                                     data-first-name="<?= htmlspecialchars($ord['first_name'] ?? '') ?>"
                                                     data-last-name="<?= htmlspecialchars($ord['last_name'] ?? '') ?>"
@@ -254,23 +254,21 @@ if ($is_logged_in):
                                                     data-street="<?= htmlspecialchars($ord['street_address'] ?? '') ?>"
                                                     data-city="<?= htmlspecialchars($ord['city'] ?? '') ?>"
                                                     data-state="<?= htmlspecialchars($ord['state'] ?? '') ?>"
-                                                    data-postcode="<?= htmlspecialchars($ord['postcode'] ?? '') ?>"
-                                                    style="border-radius: 20px; font-weight: 600;">
-                                                <i class="icon-map-marker mr-1"></i> Change Address
+                                                    data-postcode="<?= htmlspecialchars($ord['postcode'] ?? '') ?>">
+                                                <i class="icon-map-marker"></i> Edit Address
                                             </button>
 
-                                            <button type="button" class="btn btn-outline-danger btn-sm btn-cancel-order px-3" 
+                                            <button type="button" class="order-btn order-btn-danger btn-cancel-order" 
                                                     data-order-id="<?= $ord['order_id'] ?>" 
                                                     data-pay-status="<?= $pay_status_raw ?>"
-                                                    data-paid-amt="<?= $paid_amount_val ?>"
-                                                    style="border-radius: 20px; font-weight: 600;">
-                                                <i class="icon-close mr-1"></i> Cancel Order
+                                                    data-paid-amt="<?= $paid_amount_val ?>">
+                                                <i class="icon-close"></i> Cancel
                                             </button>
                                         <?php endif; ?>
 
                                         <?php if ($has_awb): ?>
-                                            <button type="button" class="btn btn-primary btn-sm btn-track-order px-3" data-order-id="<?= $ord['order_id'] ?>" style="background-color: #19978c; border-color: #19978c; border-radius: 20px; font-weight: 600;">
-                                                <i class="icon-truck mr-1"></i> Track Live
+                                            <button type="button" class="order-btn order-btn-primary btn-track-order" data-order-id="<?= $ord['order_id'] ?>">
+                                                <i class="icon-truck"></i> Track Live
                                             </button>
                                         <?php endif; ?>
                                     </div>

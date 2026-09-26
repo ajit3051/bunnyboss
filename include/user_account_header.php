@@ -492,6 +492,89 @@ include(__DIR__ . '/top.php');
     color: #0f766e;
 }
 
+/* Order Action Buttons */
+.order-action-btns {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.order-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: 20px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    white-space: nowrap;
+    line-height: 1.4;
+    text-decoration: none !important;
+    cursor: pointer;
+    border: 1px solid transparent;
+}
+.order-btn:active {
+    transform: scale(0.97);
+}
+.order-btn-primary {
+    background: #19978c;
+    border-color: #19978c;
+    color: #ffffff !important;
+    box-shadow: 0 2px 5px rgba(25, 151, 140, 0.25);
+}
+.order-btn-primary:hover {
+    background: #147a71;
+    border-color: #147a71;
+    color: #ffffff !important;
+    box-shadow: 0 4px 10px rgba(25, 151, 140, 0.35);
+}
+.order-btn-outline {
+    background: #ffffff;
+    border-color: #19978c;
+    color: #19978c !important;
+}
+.order-btn-outline:hover {
+    background: #f0fdfa;
+    border-color: #147a71;
+    color: #147a71 !important;
+}
+.order-btn-secondary {
+    background: #ffffff;
+    border-color: #cbd5e1;
+    color: #475569 !important;
+}
+.order-btn-secondary:hover {
+    background: #f8fafc;
+    border-color: #94a3b8;
+    color: #1e293b !important;
+}
+.order-btn-danger {
+    background: #ffffff;
+    border-color: #fca5a5;
+    color: #dc2626 !important;
+}
+.order-btn-danger:hover {
+    background: #fef2f2;
+    border-color: #ef4444;
+    color: #b91c1c !important;
+}
+@media (max-width: 767px) {
+    .order-action-btns {
+        justify-content: flex-start;
+        width: 100%;
+        margin-top: 10px;
+    }
+    .order-action-btns .order-btn {
+        flex: 1 1 auto;
+        padding: 7px 10px;
+        font-size: 11.5px;
+        text-align: center;
+    }
+}
+
 /* Modal Stepper */
 .order-stepper {
     display: flex;
