@@ -465,6 +465,13 @@ if ($action === 'cancel_order') {
         restore_order_stock($order_id);
     }
 
+    // Notify courier partner (Shadowfax / Delhivery) if shipment was created
+    if (!empty($order['courier_awb']) || !empty($order['delhivery_awb']) || !empty($order['courier_name'])) {
+        if (function_exists('cancelCourierShipment')) {
+            cancelCourierShipment($order, $full_reason);
+        }
+    }
+
     $updated = $db->update(
         "UPDATE tbl_orders 
          SET order_status = 'cancelled', 
