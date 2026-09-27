@@ -470,8 +470,8 @@ function include_pagination_component($offset, $recordsPerPage, $totalRecords)
   
     <div class="select-pagination">
                     <div class="d-flex">
-					<select class="recordsPerPage form-control">' .
-        $pagingRecords = _PAGEARRY_;
+					<select class="recordsPerPage form-control">';
+    $pagingRecords = _PAGEARRY_;
     foreach ($pagingRecords as $record) {
         $htmltext .= '<option value="' . $record . '"' . ($recordsPerPage == $record ? "Selected" : "") . '>' . $record . '</option>';
     }
