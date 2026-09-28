@@ -429,8 +429,8 @@
 <div id="toast"></div>
 
 <?php
-$current_loc = function_exists('getCurrentDeliveryLocation') 
-    ? getCurrentDeliveryLocation() 
+$current_loc = function_exists('getCurrentDeliveryLocation')
+    ? getCurrentDeliveryLocation()
     : ['displayText' => 'Delhi 110059', 'city' => 'Delhi', 'pincode' => '110059'];
 ?>
 <!-- DESKTOP HEADER (Logo Bar + Category Menu Bar) -->
