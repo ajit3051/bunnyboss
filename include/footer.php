@@ -54,12 +54,12 @@
                                 <h4 class="widget-title">Customer Service</h4><!-- End .widget-title -->
 
                                 <ul class="widget-list">
-                                    <li><a href="#">Payment Methods</a></li>
-                                    <li><a href="#">Money-back guarantee!</a></li>
-                                    <li><a href="#">Returns</a></li>
-                                    <li><a href="#">Shipping</a></li>
+                                    <li><a href="<?= _BASEURL ?>payment-methods.php">Payment Methods</a></li>
+                                    <li><a href="<?= _BASEURL ?>money-back-guarantee.php">Money-back guarantee!</a></li>
+                                    <li><a href="<?= _BASEURL ?>returns.php">Returns</a></li>
+                                    <li><a href="<?= _BASEURL ?>shipping.php">Shipping</a></li>
                                     <li><a href="<?= _BASEURL ?>tc.php">Terms and conditions</a></li>
-                                    <li><a href="#">Privacy Policy</a></li>
+                                    <li><a href="<?= _BASEURL ?>privacy-policy.php">Privacy Policy</a></li>
                                 </ul><!-- End .widget-list -->
                             </div><!-- End .widget -->
                         </div><!-- End .col-6 col-sm-4 col-md-4 col-lg-3 -->
@@ -69,11 +69,15 @@
                                 <h4 class="widget-title">My Account</h4><!-- End .widget-title -->
 
                                 <ul class="widget-list">
-                                    <li><a href="#">Sign In</a></li>
+                                    <?php if (!empty($_SESSION['user_id'])): ?>
+                                        <li><a href="<?= _BASEURL ?>dashboard.php">My Account (<?= htmlspecialchars($_SESSION['user_name'] ?? 'Dashboard') ?>)</a></li>
+                                    <?php else: ?>
+                                        <li><a href="#signin-modal" data-toggle="modal">Sign In</a></li>
+                                    <?php endif; ?>
                                     <li><a href="<?= _BASEURL ?>cart.php">View Cart</a></li>
-                                    <li><a href="#">My Wishlist</a></li>
-                                    <li><a href="#">Track My Order</a></li>
-                                    <li><a href="#">Help</a></li>
+                                    <li><a href="<?= _BASEURL ?>wishlist.php">My Wishlist</a></li>
+                                    <li><a href="<?= _BASEURL ?>track-order-page.php">Track My Order</a></li>
+                                    <li><a href="<?= _BASEURL ?>help.php">Help & Support</a></li>
                                 </ul><!-- End .widget-list -->
                             </div><!-- End .widget -->
                         </div><!-- End .col-6 col-sm-4 col-md-4 col-lg-2 -->
@@ -84,10 +88,14 @@
 
                                 <ul class="widget-list">
                                     <li><a href="<?= _BASEURL ?>about.php">About BunnyBoss</a></li>
-                                    <li><a href="#">How to shop on BunnyBoss</a></li>
-                                    <li><a href="faq.html">FAQ</a></li>
+                                    <li><a href="<?= _BASEURL ?>how-to-shop.php">How to shop on BunnyBoss</a></li>
+                                    <li><a href="<?= _BASEURL ?>faq.php">FAQ</a></li>
                                     <li><a href="<?= _BASEURL ?>contact.php">Contact us</a></li>
-                                    <li><a href="<?= _BASEURL ?>login.php">Log in</a></li>
+                                    <?php if (!empty($_SESSION['user_id'])): ?>
+                                        <li><a href="<?= _BASEURL ?>logout.php">Log out</a></li>
+                                    <?php else: ?>
+                                        <li><a href="<?= _BASEURL ?>login.php">Log in</a></li>
+                                    <?php endif; ?>
                                 </ul>
                                 <!-- End .widget-list -->
                             </div><!-- End .widget -->
@@ -102,10 +110,10 @@
                 <div class="container">
                     <div class="social-icons social-icons-color">
                         <span class="social-label">Social Media</span>
-                        <a href="#" class="social-icon social-facebook" title="Facebook" target="_blank"><i class="icon-facebook-f"></i></a>
+                        <a href="https://www.facebook.com" class="social-icon social-facebook" title="Facebook" target="_blank"><i class="icon-facebook-f"></i></a>
                         
-                        <a href="#" class="social-icon social-instagram" title="Instagram" target="_blank"><i class="icon-instagram"></i></a>
-                        <a href="#" class="social-icon social-youtube" title="Youtube" target="_blank"><i class="icon-youtube"></i></a>
+                        <a href="https://www.instagram.com/official_bunny__boss____?igsi=bnhxZDFldXIzcmE=" class="social-icon social-instagram" title="Instagram" target="_blank"><i class="icon-instagram"></i></a>
+                        <a href="https://www.youtube.com" class="social-icon social-youtube" title="Youtube" target="_blank"><i class="icon-youtube"></i></a>
                         
                     </div><!-- End .social-icons -->
                 </div><!-- End .container -->

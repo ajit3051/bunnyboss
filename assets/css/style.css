@@ -305,7 +305,7 @@ blockquote {
   min-height: 100%;
   transition: transform 0.4s ease; }
   .mmenu-active .page-wrapper {
-    transform: translateX(200px); }
+    transform: none; }
 
 @media all and (-ms-high-contrast: none), (-ms-high-contrast: active) {
   .page-wrapper {
@@ -17331,8 +17331,64 @@ button:focus {
 }
 
 @media (max-width: 576px) {
+    .product .product-action.product-action-split,
+    .product.product-7 .product-action.product-action-split,
+    .product-action.product-action-split {
+        display: flex !important;
+        flex-direction: column !important;
+        width: 100% !important;
+        margin-top: auto !important;
+        position: relative !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        transform: none !important;
+    }
+
+    .product-action.product-action-split .btn-product,
     .product-action-split .btn-product {
-        font-size: 0.95rem !important;
-        padding: 0.7rem 0.1rem !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        flex: 1 1 auto !important;
+        padding: 9px 6px !important;
+        font-size: 11px !important;
+        font-weight: 700 !important;
+        letter-spacing: 0.5px !important;
+        text-transform: uppercase !important;
+        white-space: nowrap !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 6px !important;
+        line-height: 1.2 !important;
+        height: auto !important;
+        min-height: 38px !important;
+        box-sizing: border-box !important;
+    }
+
+    .product-action.product-action-split .btn-product i,
+    .product-action-split .btn-product i {
+        font-size: 13px !important;
+        line-height: 1 !important;
+        margin-right: 4px !important;
+    }
+
+    .product-action.product-action-split .btn-cart,
+    .product-action-split .btn-cart {
+        border-right: none !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.15) !important;
+        background-color: #37475a !important;
+        color: #ffffff !important;
+    }
+
+    .product-action.product-action-split .btn-order-now,
+    .product-action-split .btn-order-now {
+        border-top: none !important;
+        background-color: #222222 !important;
+        color: #ffffff !important;
+    }
+
+    .product-action.product-action-split .btn-product:active,
+    .product-action-split .btn-product:active {
+        filter: brightness(0.9);
     }
 }

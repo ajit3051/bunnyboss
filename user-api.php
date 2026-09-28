@@ -8,8 +8,9 @@ $user_mobile = $_SESSION['user_mobile'] ?? '';
 
 $action = $_REQUEST['action'] ?? '';
 
-// Actions that don't require login check
-if (empty($user_id) && empty($user_mobile)) {
+// Actions that don't require pre-existing login session
+$public_actions = ['raise_order_query', 'get_order_queries'];
+if (empty($user_id) && empty($user_mobile) && !in_array($action, $public_actions, true)) {
     echo json_encode(['success' => false, 'message' => 'Unauthorized access. Please sign in.']);
     exit;
 }
@@ -384,6 +385,258 @@ if ($action === 'cancel_order') {
     } else {
         echo json_encode(['success' => false, 'message' => 'Failed to cancel order. Please try again or contact customer care.']);
     }
+    exit;
+}
+
+// ---------------------------------------------------------
+// 9. UPDATE ORDER SHIPPING ADDRESS (POST-CONFIRMATION)
+// ---------------------------------------------------------
+if ($action === 'update_order_address') {
+    $order_id       = (int)($_POST['order_id'] ?? 0);
+    $first_name     = trim($_POST['first_name'] ?? '');
+    $last_name      = trim($_POST['last_name'] ?? '');
+    $phone          = trim($_POST['phone'] ?? '');
+    $street_address = trim($_POST['street_address'] ?? '');
+    $city           = trim($_POST['city'] ?? '');
+    $state          = trim($_POST['state'] ?? '');
+    $postcode       = trim($_POST['postcode'] ?? '');
+
+    if ($order_id <= 0) {
+        echo json_encode(['success' => false, 'message' => 'Invalid order ID.']);
+        exit;
+    }
+
+    if (empty($first_name) || empty($phone) || empty($street_address) || empty($city) || empty($postcode)) {
+        echo json_encode(['success' => false, 'message' => 'Please fill in all required shipping address fields.']);
+        exit;
+    }
+
+    $clean_phone = preg_replace('/\D/', '', $phone);
+    if (strlen($clean_phone) < 10) {
+        echo json_encode(['success' => false, 'message' => 'Please enter a valid 10-digit contact number.']);
+        exit;
+    }
+    if (strlen($clean_phone) > 10) {
+        $clean_phone = substr($clean_phone, -10);
+    }
+
+    $clean_postcode = preg_replace('/\D/', '', $postcode);
+    if (strlen($clean_postcode) !== 6) {
+        echo json_encode(['success' => false, 'message' => 'Please enter a valid 6-digit delivery pincode.']);
+        exit;
+    }
+
+    // Verify order exists and belongs to current user
+    $ord_stmt = $db->select(
+        "SELECT * FROM tbl_orders WHERE order_id = ? AND (user_id = ? OR phone = ?)",
+        'iis',
+        $order_id,
+        $user_id,
+        $user_mobile
+    );
+
+    if (!$ord_stmt || $ord_stmt->num_rows === 0) {
+        echo json_encode(['success' => false, 'message' => 'Order not found or unauthorized access.']);
+        exit;
+    }
+
+    $order = $ord_stmt->fetch_assoc();
+    $current_status = strtolower(trim($order['order_status'] ?? 'pending'));
+
+    // Check if order is eligible for address change
+    if ($current_status === 'cancelled') {
+        echo json_encode(['success' => false, 'message' => 'Cannot update address for a cancelled order.']);
+        exit;
+    }
+
+    if (in_array($current_status, ['delivered', 'completed', 'rto', 'returned'])) {
+        echo json_encode(['success' => false, 'message' => 'Delivered orders cannot be updated.']);
+        exit;
+    }
+
+    $dispatch_status = strtolower(trim($order['dispatch_status'] ?? ''));
+    if (in_array($current_status, ['shipped', 'dispatched']) || in_array($dispatch_status, ['shipped', 'dispatched', 'in_transit', 'out_for_delivery'])) {
+        echo json_encode(['success' => false, 'message' => 'This order has already been dispatched with the courier partner and cannot be updated online.']);
+        exit;
+    }
+
+    // Check courier serviceability for new pincode
+    if (function_exists('checkCourierServiceability')) {
+        $serv = checkCourierServiceability($clean_postcode, $order['courier_name'] ?? null);
+        if (isset($serv['serviceable']) && $serv['serviceable'] === false) {
+            echo json_encode(['success' => false, 'message' => "Sorry, delivery is not available for pincode {$clean_postcode}. Please enter a serviceable address."]);
+            exit;
+        }
+    }
+
+    // If order was already booked with courier (AWB generated) before pickup, cancel old courier booking so it can be re-dispatched with updated address
+    if (!empty($order['courier_awb']) || !empty($order['delhivery_awb'])) {
+        if (function_exists('cancelCourierShipment')) {
+            cancelCourierShipment($order, 'Customer updated delivery address');
+        }
+    }
+
+    // Update tbl_orders
+    $updated = $db->update(
+        "UPDATE tbl_orders 
+         SET first_name = ?, last_name = ?, phone = ?, street_address = ?, city = ?, state = ?, postcode = ?,
+             courier_awb = NULL, delhivery_awb = NULL, dispatch_status = 'pending'
+         WHERE order_id = ?",
+        'sssssssi',
+        $first_name,
+        $last_name,
+        $clean_phone,
+        $street_address,
+        $city,
+        $state,
+        $clean_postcode,
+        $order_id
+    );
+
+    if ($updated !== false) {
+        echo json_encode([
+            'success' => true,
+            'message' => 'Shipping address for Order #' . $order_id . ' has been updated successfully!',
+            'order_id' => $order_id,
+            'address' => [
+                'first_name' => $first_name,
+                'last_name' => $last_name,
+                'phone' => $clean_phone,
+                'street_address' => $street_address,
+                'city' => $city,
+                'state' => $state,
+                'postcode' => $clean_postcode
+            ]
+        ]);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Failed to update shipping address. Please try again.']);
+    }
+    exit;
+}
+
+// ---------------------------------------------------------
+// 10. RAISE ORDER QUERY (BY USER)
+// ---------------------------------------------------------
+if ($action === 'raise_order_query') {
+    $order_id   = (int)($_POST['order_id'] ?? 0);
+    $issue_type = trim($_POST['issue_type'] ?? '');
+    $subject    = trim($_POST['subject'] ?? '');
+    $message    = trim($_POST['message'] ?? '');
+    $cust_name  = trim($_POST['customer_name'] ?? '');
+    $cust_phone = trim($_POST['customer_phone'] ?? '');
+    $cust_email = trim($_POST['customer_email'] ?? '');
+
+    if ($order_id <= 0) {
+        echo json_encode(['success' => false, 'message' => 'Please provide a valid Order ID.']);
+        exit;
+    }
+
+    if (empty($issue_type)) {
+        echo json_encode(['success' => false, 'message' => 'Please select the type of issue.']);
+        exit;
+    }
+
+    if (empty($message)) {
+        echo json_encode(['success' => false, 'message' => 'Please describe your query or problem in the message field.']);
+        exit;
+    }
+
+    // Verify order exists in tbl_orders
+    $ord_check = $db->select("SELECT order_id, user_id, first_name, last_name, phone FROM tbl_orders WHERE order_id = ? LIMIT 1", 'i', $order_id);
+    if (!$ord_check || $ord_check->num_rows === 0) {
+        echo json_encode(['success' => false, 'message' => 'Order #' . $order_id . ' was not found. Please verify the Order ID.']);
+        exit;
+    }
+    $ord_data = $ord_check->fetch_assoc();
+
+    // If customer details were not passed or empty, populate from order record or session
+    if (empty($cust_name)) {
+        $cust_name = trim(($ord_data['first_name'] ?? '') . ' ' . ($ord_data['last_name'] ?? ''));
+        if (empty($cust_name) && !empty($_SESSION['user_name'])) {
+            $cust_name = $_SESSION['user_name'];
+        }
+        if (empty($cust_name)) {
+            $cust_name = 'Customer';
+        }
+    }
+
+    if (empty($cust_phone)) {
+        $cust_phone = !empty($ord_data['phone']) ? $ord_data['phone'] : $user_mobile;
+    }
+
+    if (empty($cust_email)) {
+        if (!empty($ord_data['user_id'])) {
+            $u_stmt = $db->select("SELECT email FROM tbl_users WHERE id = ? LIMIT 1", 'i', (int)$ord_data['user_id']);
+            if ($u_stmt && $u_row = $u_stmt->fetch_assoc()) {
+                $cust_email = $u_row['email'] ?? '';
+            }
+        }
+    }
+
+    if (empty($subject)) {
+        $subject = $issue_type . ' - Order #' . $order_id;
+    }
+
+    $effective_user_id = $user_id > 0 ? $user_id : (int)($ord_data['user_id'] ?? 0);
+
+    // Insert query into tbl_order_queries
+    $ins = $db->insert(
+        "INSERT INTO tbl_order_queries (order_id, user_id, customer_name, customer_phone, customer_email, issue_type, subject, message, status) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'open')",
+        'iissssss',
+        $order_id,
+        $effective_user_id,
+        $cust_name,
+        $cust_phone,
+        $cust_email,
+        $issue_type,
+        $subject,
+        $message
+    );
+
+    if ($ins) {
+        echo json_encode([
+            'success' => true,
+            'message' => 'Your query regarding Order #' . $order_id . ' has been submitted successfully to support. Our team will review and contact you shortly.',
+            'query_id' => $ins
+        ]);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Failed to submit query. Please try again or reach out to support.']);
+    }
+    exit;
+}
+
+// ---------------------------------------------------------
+// 11. GET ORDER QUERIES (FOR MODAL / QUERY HISTORY)
+// ---------------------------------------------------------
+if ($action === 'get_order_queries') {
+    $order_id = (int)($_REQUEST['order_id'] ?? 0);
+    if ($order_id <= 0) {
+        echo json_encode(['success' => false, 'message' => 'Invalid order ID.']);
+        exit;
+    }
+
+    $q_stmt = $db->select(
+        "SELECT id, order_id, issue_type, subject, message, status, admin_reply, admin_notes, created_at, updated_at 
+         FROM tbl_order_queries 
+         WHERE order_id = ? 
+         ORDER BY id DESC",
+        'i',
+        $order_id
+    );
+
+    $queries = [];
+    if ($q_stmt) {
+        while ($q_row = $q_stmt->fetch_assoc()) {
+            $queries[] = $q_row;
+        }
+    }
+
+    echo json_encode([
+        'success' => true,
+        'order_id' => $order_id,
+        'queries' => $queries
+    ]);
     exit;
 }
 

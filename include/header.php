@@ -6,18 +6,36 @@
         overflow-x: clip !important;
     }
 
-    /* IMPORTANT: Prevent page-wrapper from creating a CSS containing block via transform */
-    .page-wrapper {
+    /* IMPORTANT: Prevent page-wrapper from shifting or creating a CSS containing block via transform */
+    .page-wrapper,
+    body.mmenu-active .page-wrapper,
+    .mmenu-active .page-wrapper {
         display: block !important;
         transform: none !important;
         transition: none !important;
         perspective: none !important;
         filter: none !important;
         will-change: auto !important;
+        left: 0 !important;
+        right: 0 !important;
+        position: relative !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
     }
 
-    body.mmenu-active .page-wrapper {
-        transform: translateX(280px) !important;
+    /* Lock body background scroll when side menu is active */
+    body.mmenu-active {
+        overflow: hidden !important;
+        touch-action: none;
+    }
+
+    body.mmenu-active .mobile-header,
+    body.mmenu-active .desktop-header-wrap,
+    body.mmenu-active header.header {
+        transform: none !important;
+        left: 0 !important;
+        right: 0 !important;
     }
 
     /* Fix Logo Bar + Category Menu Bar together at Top 0 on Desktop */
@@ -136,10 +154,49 @@
         }
     }
 
-    /* Ensure mobile menu container & overlays sit above fixed header */
-    .mobile-menu-overlay,
+    /* Ensure mobile menu container & overlay sit cleanly above fixed header and background */
+    .mobile-menu-overlay {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        bottom: 0 !important;
+        right: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        background-color: rgba(0, 0, 0, 0.6) !important;
+        z-index: 9998 !important;
+        visibility: hidden;
+        opacity: 0;
+        transition: opacity 0.35s ease, visibility 0.35s ease !important;
+    }
+
+    body.mmenu-active .mobile-menu-overlay,
+    .mmenu-active .mobile-menu-overlay {
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+
     .mobile-menu-container {
-        z-index: 2000 !important;
+        position: fixed !important;
+        top: 0 !important;
+        bottom: 0 !important;
+        left: -280px !important;
+        width: 280px !important;
+        max-width: 85vw !important;
+        z-index: 9999 !important;
+        background-color: #2b3440 !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        touch-action: pan-y;
+        box-shadow: 4px 0 25px rgba(0, 0, 0, 0.35) !important;
+        transition: transform 0.35s cubic-bezier(0.25, 0.8, 0.25, 1), visibility 0.35s ease !important;
+        visibility: hidden;
+    }
+
+    body.mmenu-active .mobile-menu-container,
+    .mmenu-active .mobile-menu-container {
+        visibility: visible !important;
+        transform: translateX(280px) !important;
     }
 
     /* Modals & Popups must always sit above headers, offer-marquee, and backdrops */
