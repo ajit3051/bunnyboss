@@ -4,6 +4,7 @@ include_once("include/config.php");
 
 $awb_from_db = ''; 
 $courier_from_db = '';
+$order_id = 0;
 if (isset($_GET['order_id'])) {
     $order_id = isset($_GET['order_id']) ? (int) $_GET['order_id'] : 0;
 
@@ -18,6 +19,14 @@ if (isset($_GET['order_id'])) {
 }
 if (empty($awb_from_db) && isset($_GET['waybill'])) {
     $awb_from_db = trim($_GET['waybill']);
+}
+
+if ($order_id === 0 && !empty($awb_from_db)) {
+    $db = connect();
+    $stmt_o = $db->select("SELECT order_id FROM tbl_orders WHERE courier_awb = ? OR delhivery_awb = ? LIMIT 1", 'ss', $awb_from_db, $awb_from_db);
+    if ($stmt_o && $ro = $stmt_o->fetch_assoc()) {
+        $order_id = (int) $ro['order_id'];
+    }
 }
 
 include('include/top.php');
@@ -154,6 +163,18 @@ include('include/top.php');
 
                         <!-- Result Area -->
                         <div id="result_area" class="mt-2"></div>
+
+                        <?php if ($order_id > 0): ?>
+                        <div class="mt-4 pt-3 border-top d-flex flex-wrap justify-content-between align-items-center" style="gap: 12px; background: #fffdf5; padding: 14px 18px; border-radius: 10px; border: 1px dashed #f59e0b;">
+                            <div>
+                                <strong class="text-dark d-block" style="font-size: 14px;"><i class="icon-help mr-1 text-warning"></i> Experiencing any issue with Order #<?= $order_id ?>?</strong>
+                                <span class="text-muted small">Report delayed delivery, damaged parcel, or wrong item directly to support.</span>
+                            </div>
+                            <button type="button" class="btn btn-warning btn-sm btn-round btn-raise-order-query px-3 py-2 font-weight-bold" style="background-color: #f59e0b; border-color: #f59e0b; color: #fff;" data-order-id="<?= $order_id ?>">
+                                <i class="icon-question-circle mr-1"></i> Raise Query to Admin
+                            </button>
+                        </div>
+                        <?php endif; ?>
                     </div>
 
                     <!-- Informational Guide -->
@@ -263,4 +284,7 @@ window.addEventListener('DOMContentLoaded', trackOrder);
 <?php endif; ?>
 </script>
 
-<?php include('include/bottom.php'); ?>
+<?php 
+include('include/raise_order_query_modal.php');
+include('include/bottom.php'); 
+?>

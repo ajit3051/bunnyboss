@@ -559,6 +559,7 @@
                         </a>
                         <ul class="treeview-menu">
                            <li><a href="fh_order_list.php">All Order List</a></li>
+                           <li><a href="fh_order_queries_list.php">Order Queries / Issues</a></li>
                            <li><a href="fh_shadowfax_webhook.php">Shadowfax Webhook</a></li>
                            <li><a href="#">Confirm Order</a></li>
                            <li><a href="#">Processing Order</a></li>
@@ -583,6 +584,7 @@
                   <a href="#"><span style="font-style: !important; font-size: 13px;">Inquiry Manage</span></a>
                   <ul class="treeview-menu">
                      <li><a href="fh_contact_inquiries_list.php">Contact Inquiries List</a></li>
+                     <li><a href="fh_order_queries_list.php">Order Issues & Queries</a></li>
                      <br>
                   </ul>
                   <?php include('include/divider-dotted.php'); ?>

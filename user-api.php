@@ -8,8 +8,9 @@ $user_mobile = $_SESSION['user_mobile'] ?? '';
 
 $action = $_REQUEST['action'] ?? '';
 
-// Actions that don't require login check
-if (empty($user_id) && empty($user_mobile)) {
+// Actions that don't require pre-existing login session
+$public_actions = ['raise_order_query', 'get_order_queries'];
+if (empty($user_id) && empty($user_mobile) && !in_array($action, $public_actions, true)) {
     echo json_encode(['success' => false, 'message' => 'Unauthorized access. Please sign in.']);
     exit;
 }
@@ -510,6 +511,132 @@ if ($action === 'update_order_address') {
     } else {
         echo json_encode(['success' => false, 'message' => 'Failed to update shipping address. Please try again.']);
     }
+    exit;
+}
+
+// ---------------------------------------------------------
+// 10. RAISE ORDER QUERY (BY USER)
+// ---------------------------------------------------------
+if ($action === 'raise_order_query') {
+    $order_id   = (int)($_POST['order_id'] ?? 0);
+    $issue_type = trim($_POST['issue_type'] ?? '');
+    $subject    = trim($_POST['subject'] ?? '');
+    $message    = trim($_POST['message'] ?? '');
+    $cust_name  = trim($_POST['customer_name'] ?? '');
+    $cust_phone = trim($_POST['customer_phone'] ?? '');
+    $cust_email = trim($_POST['customer_email'] ?? '');
+
+    if ($order_id <= 0) {
+        echo json_encode(['success' => false, 'message' => 'Please provide a valid Order ID.']);
+        exit;
+    }
+
+    if (empty($issue_type)) {
+        echo json_encode(['success' => false, 'message' => 'Please select the type of issue.']);
+        exit;
+    }
+
+    if (empty($message)) {
+        echo json_encode(['success' => false, 'message' => 'Please describe your query or problem in the message field.']);
+        exit;
+    }
+
+    // Verify order exists in tbl_orders
+    $ord_check = $db->select("SELECT order_id, user_id, first_name, last_name, phone FROM tbl_orders WHERE order_id = ? LIMIT 1", 'i', $order_id);
+    if (!$ord_check || $ord_check->num_rows === 0) {
+        echo json_encode(['success' => false, 'message' => 'Order #' . $order_id . ' was not found. Please verify the Order ID.']);
+        exit;
+    }
+    $ord_data = $ord_check->fetch_assoc();
+
+    // If customer details were not passed or empty, populate from order record or session
+    if (empty($cust_name)) {
+        $cust_name = trim(($ord_data['first_name'] ?? '') . ' ' . ($ord_data['last_name'] ?? ''));
+        if (empty($cust_name) && !empty($_SESSION['user_name'])) {
+            $cust_name = $_SESSION['user_name'];
+        }
+        if (empty($cust_name)) {
+            $cust_name = 'Customer';
+        }
+    }
+
+    if (empty($cust_phone)) {
+        $cust_phone = !empty($ord_data['phone']) ? $ord_data['phone'] : $user_mobile;
+    }
+
+    if (empty($cust_email)) {
+        if (!empty($ord_data['user_id'])) {
+            $u_stmt = $db->select("SELECT email FROM tbl_users WHERE id = ? LIMIT 1", 'i', (int)$ord_data['user_id']);
+            if ($u_stmt && $u_row = $u_stmt->fetch_assoc()) {
+                $cust_email = $u_row['email'] ?? '';
+            }
+        }
+    }
+
+    if (empty($subject)) {
+        $subject = $issue_type . ' - Order #' . $order_id;
+    }
+
+    $effective_user_id = $user_id > 0 ? $user_id : (int)($ord_data['user_id'] ?? 0);
+
+    // Insert query into tbl_order_queries
+    $ins = $db->insert(
+        "INSERT INTO tbl_order_queries (order_id, user_id, customer_name, customer_phone, customer_email, issue_type, subject, message, status) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'open')",
+        'iissssss',
+        $order_id,
+        $effective_user_id,
+        $cust_name,
+        $cust_phone,
+        $cust_email,
+        $issue_type,
+        $subject,
+        $message
+    );
+
+    if ($ins) {
+        echo json_encode([
+            'success' => true,
+            'message' => 'Your query regarding Order #' . $order_id . ' has been submitted successfully to support. Our team will review and contact you shortly.',
+            'query_id' => $ins
+        ]);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Failed to submit query. Please try again or reach out to support.']);
+    }
+    exit;
+}
+
+// ---------------------------------------------------------
+// 11. GET ORDER QUERIES (FOR MODAL / QUERY HISTORY)
+// ---------------------------------------------------------
+if ($action === 'get_order_queries') {
+    $order_id = (int)($_REQUEST['order_id'] ?? 0);
+    if ($order_id <= 0) {
+        echo json_encode(['success' => false, 'message' => 'Invalid order ID.']);
+        exit;
+    }
+
+    $q_stmt = $db->select(
+        "SELECT id, order_id, issue_type, subject, message, status, admin_reply, admin_notes, created_at, updated_at 
+         FROM tbl_order_queries 
+         WHERE order_id = ? 
+         ORDER BY id DESC",
+        'i',
+        $order_id
+    );
+
+    $queries = [];
+    if ($q_stmt) {
+        while ($q_row = $q_stmt->fetch_assoc()) {
+            $queries[] = $q_row;
+        }
+    }
+
+    echo json_encode([
+        'success' => true,
+        'order_id' => $order_id,
+        'queries' => $queries
+    ]);
     exit;
 }
 

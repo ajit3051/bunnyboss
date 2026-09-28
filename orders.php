@@ -245,6 +245,15 @@ if ($is_logged_in):
                                             <i class="icon-eye"></i> View Details
                                         </button>
 
+                                        <button type="button" class="order-btn order-btn-outline btn-raise-order-query"
+                                                data-order-id="<?= $ord['order_id'] ?>"
+                                                data-name="<?= htmlspecialchars(($ord['first_name'] ?? '') . ' ' . ($ord['last_name'] ?? '')) ?>"
+                                                data-phone="<?= htmlspecialchars($ord['phone'] ?? '') ?>"
+                                                data-email="<?= htmlspecialchars($ord['email'] ?? '') ?>"
+                                                style="color: #b45309; border-color: #fcd34d; background: #fffdf5;">
+                                            <i class="icon-question-circle"></i> Raise Query
+                                        </button>
+
                                         <?php if ($can_cancel): ?>
                                             <button type="button" class="order-btn order-btn-secondary btn-change-order-address"
                                                     data-order-id="<?= $ord['order_id'] ?>"

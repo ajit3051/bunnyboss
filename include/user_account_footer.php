@@ -282,6 +282,9 @@ if ($is_logged_in): ?>
     </div>
 </div>
 
+<?php include(__DIR__ . '/raise_order_query_modal.php'); ?>
+
+
 <script>
 $(document.body).ready(function() {
 
@@ -698,6 +701,13 @@ $(document.body).ready(function() {
                         'data-postcode="' + escapeHtml(ord.postcode || '') + '" ' +
                         'style="border-radius: 20px; font-weight: 600;"><i class="icon-map-marker mr-1"></i> Change Address</button>' : '';
 
+                    var raiseQueryBtnHtml = '<button type="button" class="btn btn-outline-warning btn-sm px-3 btn-raise-order-query ml-2" ' +
+                        'data-order-id="' + ord.order_id + '" ' +
+                        'data-name="' + escapeHtml((ord.first_name || '') + ' ' + (ord.last_name || '')) + '" ' +
+                        'data-phone="' + escapeHtml(ord.phone || '') + '" ' +
+                        'data-email="' + escapeHtml(ord.email || '') + '" ' +
+                        'style="border-radius: 20px; font-weight: 600; color: #b45309; border-color: #f59e0b;"><i class="icon-question-circle mr-1"></i> Raise Query</button>';
+
                     // Modal action buttons in footer
                     var modalFooterHtml = '<div class="d-flex justify-content-between align-items-center w-100 flex-wrap gap-2">' +
                                               '<div>' +
@@ -706,6 +716,7 @@ $(document.body).ready(function() {
                                                   '</button>' +
                                                   changeAddrBtnHtml +
                                                   cancelBtnHtml +
+                                                  raiseQueryBtnHtml +
                                               '</div>' +
                                               '<div class="d-flex gap-2" style="gap: 8px;">' +
                                                   (awb ? '<button type="button" class="btn btn-primary btn-sm px-3 btn-track-order" data-order-id="' + ord.order_id + '" style="background-color: #19978c; border-color: #19978c; border-radius: 20px; font-weight: 600;"><i class="icon-truck mr-1"></i> Track Shipment</button>' : '') +
